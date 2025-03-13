@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import FeatureCard from "@/components/feature-card/FeatureCard";
+// import AuthButton from "@/components/auth-button/AuthButton";
 
 const HomePage = () => {
   const [displayText, setDisplayText] = useState("");
@@ -123,6 +124,8 @@ const HomePage = () => {
               Claim Your Rinnku
             </button>
           </div>
+
+          {/* <AuthButton/> */}
 
           {/* Social Proof */}
           <div className="mt-10 text-sm text-gray-400">

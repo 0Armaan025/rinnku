@@ -62,8 +62,9 @@ const Navbar = () => {
                 </Link>
               ))}
               
+              <Link href="/auth">
               <button 
-                className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-md transition-all duration-300 hover:shadow-indigo-500/30 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-none border border-indigo-400/30"
+                className="relative overflow-hidden bg-gradient-to-r cursor-pointer from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-md transition-all duration-300 hover:shadow-indigo-500/30 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-none border border-indigo-400/30"
               >
                 <span className="relative z-10">
                   Get Started
@@ -71,6 +72,7 @@ const Navbar = () => {
                 <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 hover:opacity-20"></div>
                 <div className="absolute -inset-px bg-gradient-to-r from-pink-500 to-indigo-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-sm"></div>
               </button>
+              </Link>
             </div>
 
             {/* Mobile menu button */}
