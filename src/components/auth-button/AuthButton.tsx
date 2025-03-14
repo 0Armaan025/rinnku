@@ -26,28 +26,7 @@ export default function AuthButton() {
   const toggleAuthMode = () => setIsRegistering((prev) => !prev);
 
   if (session) {
-    return (
-<div className=" min-h-screen flex flex-col items-center justify-start  bg-gradient-to-b from-[#030213] to-[#0f0a2d] bg-cover bg-no-repeat">
-<p className="text-lg  font-semibold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-          Welcome, {session.user?.name}!
-        </p>
-        {session.user?.image && (
-          <Image
-            src={session.user.image}
-            alt="Profile"
-            width={50}
-            height={50}
-            className="rounded-full"
-          />
-        )}
-        <button
-          onClick={() => signOut()}
-          className="px-4 py-2 rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:opacity-90 transition"
-        >
-          Sign Out
-        </button>
-      </div>
-    );
+    window.location.href="/dashboard";
   }
 
   return (

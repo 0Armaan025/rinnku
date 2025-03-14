@@ -1075,7 +1075,7 @@ const DashboardPage = (props: Props) => {
                             <span>{log.device}</span>
                           </div>
                         </td>
-                        <td className="py-3 text-gray-400">{log.ip}</td>
+                        <td className="py-3 text-gray-400">HIDDEN</td>
                       </tr>
                     ))}
                   </tbody>
