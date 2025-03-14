@@ -26,6 +26,7 @@ export default function AuthButton() {
   const toggleAuthMode = () => setIsRegistering((prev) => !prev);
 
   if (session) {
+    console.log("logged in!", session);
     window.location.href="/dashboard";
   }
 
