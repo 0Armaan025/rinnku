@@ -1,10 +1,8 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions, DefaultSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { NextAuthOptions } from "next-auth";
-
-import clientPromise from "../../../lib/mongodb";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
-
+import clientPromise from "@/app/lib/mongodb";
+import { JWT } from "next-auth/jwt";
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
@@ -16,8 +14,10 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async session({session, user}) {
-      session.user.id = user.id;
+    async session({ session, token }: { session: DefaultSession; token: JWT }) {
+      if (token.sub) {
+        (session.user as { id: string }).id = token.sub;
+      }
       return session;
     },
   },
@@ -25,4 +25,5 @@ export const authOptions: NextAuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export const GET = handler;
+export const POST = handler;
