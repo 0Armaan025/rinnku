@@ -27,7 +27,7 @@ export default function AuthButton() {
 
   if (session) {
     return (
-<div className=" flex flex-col items-center justify-center bg-gradient-to-b from-[#030213] to-[#0f0a2d] bg-cover bg-no-repeat">
+<div className=" min-h-screen flex flex-col items-center justify-start  bg-gradient-to-b from-[#030213] to-[#0f0a2d] bg-cover bg-no-repeat">
 <p className="text-lg  font-semibold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
           Welcome, {session.user?.name}!
         </p>
@@ -54,6 +54,7 @@ export default function AuthButton() {
     <>
     <div className="min-h-screen mt-32 max-w-md mx-auto p-6 rounded-lg shadow-md flex flex-col items-center gap-6 ">
     <button
+    onClick={() => signIn("google")}
   className="w-full py-2 px-4 rounded-md bg-gradient-to-r  from-indigo-600 to-purple-600 text-white font-semibold hover:opacity-90 transition"
 >
   Sign In with Google

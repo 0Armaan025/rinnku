@@ -1,49 +1,35 @@
 "use client";
-import React, { useState } from 'react';
-import { User, BarChart3, Settings, ClipboardList, LogOut, Globe, Link2, Users, ArrowUpRight, Plus, Edit, Eye, Save, Trash2, ChevronDown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useEffect, useState } from 'react';
+import { User, BarChart3, Settings, ClipboardList, LogOut, Globe, Link2, Users, ArrowUpRight, Plus, Edit, Eye, Save, Trash2, ChevronDown, Calendar, Clock, Smartphone, Laptop, Download } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
+import { signIn, useSession } from 'next-auth/react';
+import AuthButton from '@/components/auth-button/AuthButton';
 
 type Props = {};
 
-// Sample data for the dashboard
-const visitorData = [
-  { day: 'Mon', count: 120 },
-  { day: 'Tue', count: 150 },
-  { day: 'Wed', count: 180 },
-  { day: 'Thu', count: 220 },
-  { day: 'Fri', count: 250 },
-  { day: 'Sat', count: 190 },
-  { day: 'Sun', count: 110 },
-];
+// Define data types based on MongoDB schema
+interface ClickData {
+  linkId: string;
+  timestamp: Date;
+  country: string;
+  device: string;
+  ip: string;
+}
+
+interface AnalyticsData {
+  rinnkuUrl: string;
+  totalVisits: number;
+  clicks: ClickData[];
+  createdAt: Date;
+}
 
 interface FieldType {
-    id: number;
-    title: string; // Adjust this based on your actual field structure
-    link: string; // Adjust this too if needed
-    image: string; // Adjust this too if needed
-  }
-
-const popularLinks = [
-  { id: 1, name: 'Marketing Campaign', clicks: 1204, growth: '+12.5%' },
-  { id: 2, name: 'Product Release', clicks: 872, growth: '+8.2%' },
-  { id: 3, name: 'Social Media', clicks: 654, growth: '+5.7%' },
-];
-
-const countryData = [
-  { country: 'United States', visitors: 3842, percentage: 42 },
-  { country: 'India', visitors: 1253, percentage: 18 },
-  { country: 'Germany', visitors: 864, percentage: 12 },
-  { country: 'United Kingdom', visitors: 654, percentage: 9 },
-  { country: 'Canada', visitors: 532, percentage: 7 },
-];
-
-const recentLogs = [
-  { id: 1, country: 'United States', time: '2 minutes ago', page: 'Home' },
-  { id: 2, country: 'Germany', time: '5 minutes ago', page: 'Products' },
-  { id: 3, country: 'Japan', time: '12 minutes ago', page: 'Contact' },
-  { id: 4, country: 'France', time: '18 minutes ago', page: 'About' },
-  { id: 5, country: 'Australia', time: '25 minutes ago', page: 'Blog' },
-];
+  id: number;
+  title: string;
+  link: string;
+  image: string;
+  clicks?: number; // Track clicks for each link
+}
 
 // Theme options for customization
 const themeOptions = [
@@ -55,30 +41,283 @@ const themeOptions = [
 ];
 
 const DashboardPage = (props: Props) => {
+  const { data: session, status } = useSession();
+  const [loading, setLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [timeRange, setTimeRange] = useState('week'); // 'day', 'week', 'month', 'year'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [username, setUsername] = useState('johndoe');
   const [displayName, setDisplayName] = useState('John Doe');
   const [settingsOpen, setSettingsOpen] = useState(false);
-const [isProfilePublic, setIsProfilePublic] = useState(true);
+  const [isProfilePublic, setIsProfilePublic] = useState(true);
   const [selectedTheme, setSelectedTheme] = useState(themeOptions[0]);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [fields, setFields] = useState<FieldType[]>([
-    { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: '' },
-    { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '' },
-    { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '' },
+    { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: '', clicks: 215 },
+    { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', clicks: 432 },
+    { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '', clicks: 187 },
   ]);
-
-  
   const [previewMode, setPreviewMode] = useState(false);
 
-  // Colors for the pie chart
+  // Fetch analytics data
+  const fetchAnalyticsData = async () => {
+    try {
+      // This would be replaced with your actual API call
+      // const response = await fetch('/api/analytics');
+      // const data = await response.json();
+      
+      // Mock data for demonstration
+      const mockAnalyticsData: AnalyticsData = {
+        rinnkuUrl: 'johndoe',
+        totalVisits: 24892,
+        clicks: generateMockClicks(300),
+        createdAt: new Date('2024-12-01')
+      };
+      
+      setAnalyticsData(mockAnalyticsData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      setLoading(false);
+    }
+  };
+
+  // Generate mock click data
+  const generateMockClicks = (count: number): ClickData[] => {
+    const countries = ['United States', 'India', 'Germany', 'United Kingdom', 'Canada', 'Japan', 'France', 'Australia', 'Brazil', 'Mexico'];
+    const devices = ['Mobile', 'Desktop', 'Tablet'];
+    const clicks: ClickData[] = [];
+
+    // Generate clicks over the past 90 days with more recent dates being more common
+    for (let i = 0; i < count; i++) {
+      const daysAgo = Math.floor(Math.pow(Math.random(), 2) * 90); // Bias towards recent dates
+      const timestamp = new Date();
+      timestamp.setDate(timestamp.getDate() - daysAgo);
+      
+      // Random time within that day
+      timestamp.setHours(Math.floor(Math.random() * 24));
+      timestamp.setMinutes(Math.floor(Math.random() * 60));
+      
+      clicks.push({
+        linkId: [fields[0].id, fields[1].id, fields[2].id][Math.floor(Math.random() * fields.length)].toString(),
+        timestamp: timestamp,
+        country: countries[Math.floor(Math.random() * countries.length)],
+        device: devices[Math.floor(Math.random() * devices.length)],
+        ip: `${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`
+      });
+    }
+    
+    // Sort by timestamp
+    return clicks.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  };
+
+  useEffect(() => {
+    if (status === "loading") return;
+
+    console.log("Session status:", status, "Session data:", session);
+
+    if (status === "unauthenticated") {
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 5000);
+    } else if (status === "authenticated") {
+      fetchAnalyticsData();
+    }
+  }, [status, session]);
+
+  // Prepare derived data for charts
+  const prepareVisitorData = () => {
+    if (!analyticsData) return [];
+    
+    const timeRangeMap = {
+      'day': { unit: 'hour', count: 24, format: (d: Date) => d.getHours() + ':00' },
+      'week': { unit: 'day', count: 7, format: (d: Date) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()] },
+      'month': { unit: 'day', count: 30, format: (d: Date) => d.getDate() },
+      'year': { unit: 'month', count: 12, format: (d: Date) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] }
+    };
+    
+    const { unit, count, format } = timeRangeMap[timeRange as keyof typeof timeRangeMap];
+    
+    // Create buckets
+    const now = new Date();
+    const buckets: Record<string, { label: string, visits: number, clicks: number }> = {};
+    
+    for (let i = 0; i < count; i++) {
+      const date = new Date();
+      if (unit === 'hour') {
+        date.setHours(now.getHours() - i, 0, 0, 0);
+      } else if (unit === 'day') {
+        date.setDate(now.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+      } else if (unit === 'month') {
+        date.setMonth(now.getMonth() - i, 1);
+        date.setHours(0, 0, 0, 0);
+      }
+      
+      const label = format(date);
+      buckets[label.toString()] = { label: label.toString(), visits: 0, clicks: 0 };
+    }
+    
+    // Fill with data
+    analyticsData.clicks.forEach(click => {
+      const date = new Date(click.timestamp);
+      let label;
+      
+      if (unit === 'hour') {
+        label = date.getHours() + ':00';
+      } else if (unit === 'day') {
+        label = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+      } else if (unit === 'month') {
+        label = date.getDate().toString();
+      } else {
+        label = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()];
+      }
+      
+      // Only count if within the time range
+      const timeDiff = now.getTime() - date.getTime();
+      const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+      
+      if ((timeRange === 'day' && daysDiff <= 1) ||
+          (timeRange === 'week' && daysDiff <= 7) ||
+          (timeRange === 'month' && daysDiff <= 30) ||
+          (timeRange === 'year' && daysDiff <= 365)) {
+        if (buckets[label]) {
+          buckets[label].clicks += 1;
+          // Assuming each click also counts as a visit
+          buckets[label].visits += 1;
+        }
+      }
+    });
+    
+    return Object.values(buckets).reverse();
+  };
+
+  const prepareCountryData = () => {
+    if (!analyticsData) return [];
+    
+    const countryMap: Record<string, number> = {};
+    
+    analyticsData.clicks.forEach(click => {
+      countryMap[click.country] = (countryMap[click.country] || 0) + 1;
+    });
+    
+    return Object.entries(countryMap)
+      .map(([country, visits]) => ({ country, visits, percentage: Math.round((visits / analyticsData.clicks.length) * 100) }))
+      .sort((a, b) => b.visits - a.visits)
+      .slice(0, 5);
+  };
+
+  const prepareDeviceData = () => {
+    if (!analyticsData) return [];
+    
+    const deviceMap: Record<string, number> = {};
+    
+    analyticsData.clicks.forEach(click => {
+      deviceMap[click.device] = (deviceMap[click.device] || 0) + 1;
+    });
+    
+    return Object.entries(deviceMap)
+      .map(([device, count]) => ({ device, count, percentage: Math.round((count / analyticsData.clicks.length) * 100) }));
+  };
+
+  const prepareLinkPerformance = () => {
+    if (!analyticsData || !fields) return [];
+    
+    const linkClickMap: Record<string, number> = {};
+    
+    analyticsData.clicks.forEach(click => {
+      linkClickMap[click.linkId] = (linkClickMap[click.linkId] || 0) + 1;
+    });
+    
+    return fields.map(field => {
+      const clicks = linkClickMap[field.id.toString()] || 0;
+      // Calculate growth (mock data for now)
+      const growth = Math.round((Math.random() * 20) - 5) + '%';
+      const growthDirection = growth.startsWith('-') ? 'negative' : 'positive';
+      
+      return {
+        id: field.id,
+        name: field.title,
+        clicks,
+        growth,
+        growthDirection
+      };
+    }).sort((a, b) => b.clicks - a.clicks);
+  };
+
+  const prepareRecentLogs = () => {
+    if (!analyticsData) return [];
+    
+    return analyticsData.clicks.slice(0, 10).map((click, index) => {
+      const now = new Date();
+      const clickTime = new Date(click.timestamp);
+      const diffMs = now.getTime() - clickTime.getTime();
+      
+      let timeAgo;
+      if (diffMs < 60000) {
+        timeAgo = 'Just now';
+      } else if (diffMs < 3600000) {
+        timeAgo = `${Math.floor(diffMs / 60000)} minutes ago`;
+      } else if (diffMs < 86400000) {
+        timeAgo = `${Math.floor(diffMs / 3600000)} hours ago`;
+      } else {
+        timeAgo = `${Math.floor(diffMs / 86400000)} days ago`;
+      }
+      
+      const field = fields.find(f => f.id.toString() === click.linkId);
+      
+      return {
+        id: index,
+        country: click.country,
+        time: timeAgo,
+        page: field ? field.title : 'Unknown',
+        device: click.device,
+        ip: click.ip
+      };
+    });
+  };
+
+  const prepareHourlyActivityData = () => {
+    if (!analyticsData) return [];
+    
+    const hourlyData = Array(24).fill(0).map((_, i) => ({ hour: i, visits: 0 }));
+    
+    analyticsData.clicks.forEach(click => {
+      const hour = new Date(click.timestamp).getHours();
+      hourlyData[hour].visits++;
+    });
+    
+    return hourlyData;
+  };
+
+  // Process data for charts
+  const visitorData = prepareVisitorData();
+  const countryData = prepareCountryData();
+  const deviceData = prepareDeviceData();
+  const popularLinks = prepareLinkPerformance();
+  const recentLogs = prepareRecentLogs();
+  const hourlyActivityData = prepareHourlyActivityData();
+
+  // Colors for charts
   const COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'];
+  const DEVICE_COLORS = {
+    'Mobile': '#6366f1',
+    'Desktop': '#8b5cf6',
+    'Tablet': '#a855f7'
+  };
+
+  // Calculate growth metrics
+  const calculateGrowth = (currentValue: number, previousValue: number) => {
+    if (previousValue === 0) return '100%';
+    const growth = ((currentValue - previousValue) / previousValue) * 100;
+    return growth > 0 ? `+${growth.toFixed(1)}%` : `${growth.toFixed(1)}%`;
+  };
 
   // Add new field
   const addField = () => {
     const newId = fields.length > 0 ? Math.max(...fields.map(f => f.id)) + 1 : 1;
-    setFields([...fields, { id: newId, title: '', link: '', image: '' }]);
+    setFields([...fields, { id: newId, title: '', link: '', image: '', clicks: 0 }]);
   };
 
   // Delete field
@@ -86,17 +325,59 @@ const [isProfilePublic, setIsProfilePublic] = useState(true);
     setFields(fields.filter((field) => field.id !== id));
   };
   
-  const updateField = (id: number, key: keyof FieldType, value: string) => {
+  const updateField = (id: number, key: keyof FieldType, value: string | number) => {
     setFields(fields.map((field) =>
       field.id === id ? { ...field, [key]: value } : field
     ));
   };
-  
 
   // Get gradient classes based on selected theme
   const getGradientClasses = () => {
     return `bg-gradient-to-r ${selectedTheme.from} ${selectedTheme.to}`;
   };
+
+  // Export analytics data
+  const exportAnalyticsData = () => {
+    if (!analyticsData) return;
+    
+    // Prepare CSV data
+    const headers = ['Timestamp', 'Country', 'Device', 'IP', 'Link'];
+    const rows = analyticsData.clicks.map(click => {
+      const field = fields.find(f => f.id.toString() === click.linkId);
+      return [
+        new Date(click.timestamp).toISOString(),
+        click.country,
+        click.device,
+        click.ip,
+        field?.title || 'Unknown'
+      ];
+    });
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `rinkuu-analytics-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+        <span className="ml-2 text-white">🔄 Loading analytics data...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] text-gray-200">
@@ -193,49 +474,51 @@ const [isProfilePublic, setIsProfilePublic] = useState(true);
               {activeTab === 'logs' && 'Activity Logs'}
             </h1>
             <div className="flex items-center space-x-4">
-              <button    onClick={() => setSettingsOpen(!settingsOpen)}
- className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800">
+              <button
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800"
+              >
                 <Settings size={18} />
-                
               </button>
 
               {settingsOpen && (
-    <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-20">
-      <div className="p-4">
-        <h3 className="text-lg font-medium mb-4">Quick Settings</h3>
-        
-        <div className="mb-4">
-          <div className="flex items-center justify-between">
-            <label className="text-gray-300">Profile Public</label>
-            <button 
-              onClick={() => setIsProfilePublic(!isProfilePublic)} 
-              className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${isProfilePublic ? 'bg-purple-600' : 'bg-gray-700'}`}
-            >
-              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${isProfilePublic ? 'translate-x-6' : 'translate-x-0'}`}></div>
-            </button>
-          </div>
-          <p className="text-gray-400 text-xs mt-1">
-            {isProfilePublic ? 'Anyone can view your profile' : 'Your profile is private'}
-          </p>
-        </div>
-        
-        <div className="pt-3 border-t border-gray-800 flex justify-end">
-          <button 
-            onClick={() => setSettingsOpen(false)}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white text-sm"
-          >
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-  {settingsOpen && (
-  <div 
-    className="fixed inset-0 z-10" 
-    onClick={() => setSettingsOpen(false)}
-  ></div>
-)}
+                <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-20">
+                  <div className="p-4">
+                    <h3 className="text-lg font-medium mb-4">Quick Settings</h3>
+                    
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-gray-300">Profile Public</label>
+                        <button 
+                          onClick={() => setIsProfilePublic(!isProfilePublic)} 
+                          className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${isProfilePublic ? 'bg-purple-600' : 'bg-gray-700'}`}
+                        >
+                          <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${isProfilePublic ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                        </button>
+                      </div>
+                      <p className="text-gray-400 text-xs mt-1">
+                        {isProfilePublic ? 'Anyone can view your profile' : 'Your profile is private'}
+                      </p>
+                    </div>
+                    
+                    <div className="pt-3 border-t border-gray-800 flex justify-end">
+                      <button 
+                        onClick={() => setSettingsOpen(false)}
+                        className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white text-sm"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {settingsOpen && (
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setSettingsOpen(false)}
+                ></div>
+              )}
               
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
                 JD
@@ -291,8 +574,24 @@ const [isProfilePublic, setIsProfilePublic] = useState(true);
           {/* Dashboard Section */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
+              {/* Time range selector */}
+              <div className="flex items-center justify-between bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+                <h3 className="font-medium">Time Range</h3>
+                <div className="flex space-x-2">
+                  {['day', 'week', 'month', 'year'].map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-3 py-1 rounded-lg ${timeRange === range ? getGradientClasses() : 'bg-gray-800'}`}
+                    >
+                      {range.charAt(0).toUpperCase() + range.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Stats Overview */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <div className="bg-gray-900/50 p-4 md:p-6 rounded-xl border border-gray-800">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-gray-400">Total Visitors</h3>
@@ -300,7 +599,7 @@ const [isProfilePublic, setIsProfilePublic] = useState(true);
                       <Users size={20} className="text-indigo-400" />
                     </div>
                   </div>
-                  <p className="text-2xl md:text-3xl font-bold">24,892</p>
+                  <p className="text-2xl md:text-3xl font-bold">{analyticsData?.totalVisits?.toLocaleString() || '0'}</p>
                   <div className="flex items-center mt-2 text-green-500">
                     <ArrowUpRight size={16} />
                     <span className="text-sm ml-1">12.5% increase</span>
@@ -308,13 +607,13 @@ const [isProfilePublic, setIsProfilePublic] = useState(true);
                 </div>
                 
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-400">Link Clicks</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-gray-400">Average Session</h3>
                     <div className="p-2 bg-purple-500/20 rounded-lg">
-                      <Link2 size={20} className="text-purple-400" />
+                      <Clock size={20} className="text-purple-400" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold">8,621</p>
+                  <p className="text-2xl md:text-3xl font-bold">4m 32s</p>
                   <div className="flex items-center mt-2 text-green-500">
                     <ArrowUpRight size={16} />
                     <span className="text-sm ml-1">8.2% increase</span>
@@ -323,303 +622,483 @@ const [isProfilePublic, setIsProfilePublic] = useState(true);
                 
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-400">Countries</h3>
-                    <div className="p-2 bg-indigo-500/20 rounded-lg">
-                      <Globe size={20} className="text-indigo-400" />
+                    <h3 className="text-gray-400">Link Clicks</h3>
+                    <div className="p-2 bg-green-500/20 rounded-lg">
+                      <Link2 size={20} className="text-green-400" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold">42</p>
+                  <p className="text-2xl md:text-3xl font-bold">{fields.reduce((sum, field) => sum + (field.clicks || 0), 0).toLocaleString()}</p>
                   <div className="flex items-center mt-2 text-green-500">
                     <ArrowUpRight size={16} />
-                    <span className="text-sm ml-1">3 new countries</span>
+                    <span className="text-sm ml-1">15.3% increase</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-gray-400">Conversion Rate</h3>
+                    <div className="p-2 bg-amber-500/20 rounded-lg">
+                      <BarChart3 size={20} className="text-amber-400" />
+                    </div>
+                  </div>
+                  <p className="text-2xl md:text-3xl font-bold">3.27%</p>
+                  <div className="flex items-center mt-2 text-red-500">
+                    <ArrowUpRight size={16} className="transform rotate-90" />
+                    <span className="text-sm ml-1">2.1% decrease</span>
                   </div>
                 </div>
               </div>
-              
+
               {/* Visitor Chart */}
               <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                <h3 className="text-xl font-bold mb-4">Visitor Traffic</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={visitorData}>
-                    <XAxis dataKey="day" stroke="#6b7280" />
-                    <YAxis stroke="#6b7280" />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px' }}
-                      cursor={{ fill: '#374151' }}
-                    />
-                    <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <h3 className="font-medium mb-6">Visitor Analytics</h3>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={visitorData}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis 
+                        dataKey="label" 
+                        tick={{ fill: '#9ca3af' }}
+                        tickLine={{ stroke: '#4b5563' }}
+                      />
+                      <YAxis 
+                        tick={{ fill: '#9ca3af' }}
+                        tickLine={{ stroke: '#4b5563' }}
+                      />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#4b5563" />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }}
+                        itemStyle={{ color: '#d1d5db' }}
+                        labelStyle={{ color: '#f9fafb' }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="visits" 
+                        stroke="#6366f1" 
+                        fillOpacity={1} 
+                        fill="url(#colorVisits)" 
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="clicks" 
+                        stroke="#8b5cf6" 
+                        fillOpacity={1} 
+                        fill="url(#colorClicks)" 
+                      />
+                      <Legend />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              
-              {/* Popular Links and Country Data */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Popular Links and Device Distribution */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Popular Links */}
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="text-xl font-bold mb-4">Most Popular Links</h3>
-                  <div className="space-y-3">
+                  <h3 className="font-medium mb-6">Link Performance</h3>
+                  <div className="space-y-4">
                     {popularLinks.map((link) => (
-                      <div key={link.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-                        <div>
-                          <h4 className="font-medium">{link.name}</h4>
-                          <p className="text-gray-400 text-sm">{link.clicks} clicks</p>
+                      <div key={link.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                            <Link2 size={16} className="text-indigo-400" />
+                          </div>
+                          <span className="ml-3 font-medium">{link.name}</span>
                         </div>
-                        <span className="text-green-500">{link.growth}</span>
+                        <div className="text-right">
+                          <p className="font-bold">{link.clicks.toLocaleString()}</p>
+                          <p className={`text-xs ${link.growthDirection === 'positive' ? 'text-green-500' : 'text-red-500'}`}>
+                            {link.growth}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
                 
-                {/* Country Data */}
+                {/* Device Distribution */}
                 <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="text-xl font-bold mb-4">Top Countries</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={countryData}
-                        dataKey="percentage"
-                        nameKey="country"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        label
-                      >
-                        {countryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <h3 className="font-medium mb-6">Device Distribution</h3>
+                  <div className="flex items-center">
+                    <div className="w-1/2 h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={deviceData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            paddingAngle={5}
+                            dataKey="count"
+                          >
+                            {deviceData.map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={DEVICE_COLORS[entry.device as keyof typeof DEVICE_COLORS] || COLORS[index % COLORS.length]} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }}
+                            itemStyle={{ color: '#d1d5db' }}
+                            labelStyle={{ color: '#f9fafb' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="w-1/2">
+                      <div className="space-y-4">
+                        {deviceData.map((entry, index) => (
+                          <div key={index} className="flex items-center">
+                            <div 
+                              className="w-3 h-3 rounded-full mr-2" 
+                              style={{ backgroundColor: DEVICE_COLORS[entry.device as keyof typeof DEVICE_COLORS] || COLORS[index % COLORS.length] }} 
+                            />
+                            <div>
+                              <p className="font-medium">{entry.device}</p>
+                              <p className="text-gray-400 text-sm">{entry.percentage}%</p>
+                            </div>
+                          </div>
                         ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Customization Section */}
-{activeTab === 'customization' && (
-  <div className="space-y-6">
-    {/* Profile URL and Theme Selection */}
-    <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-      <h2 className="text-xl font-bold mb-4">Your Rinkuu</h2>
-      
-      {/* Profile URL */}
-      <div className="mb-6">
-        <label className="block text-gray-400 mb-2">Your Profile URL</label>
-        <div className="flex items-center">
-          <span className="bg-gray-800 p-2 rounded-l-lg border border-gray-700 text-gray-400">rinkuu.com/@</span>
-          <input 
-            type="text" 
-            value={username} 
-            onChange={(e) => setUsername(e.target.value)}
-            className="flex-1 bg-gray-800 border border-gray-700 border-l-0 rounded-r-lg p-2"
-          />
-        </div>
-      </div>
-      
-      {/* Display Name */}
-      <div className="mb-6">
-        <label className="block text-gray-400 mb-2">Display Name</label>
-        <input 
-          type="text" 
-          value={displayName} 
-          onChange={(e) => setDisplayName(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2"
-        />
-      </div>
-      
-      {/* Theme Selection */}
-      <div className="mb-6">
-        <label className="block text-gray-400 mb-2">Theme</label>
-        <div className="relative">
-          <button 
-            className="w-full flex items-center justify-between bg-gray-800 border border-gray-700 rounded-lg p-2"
-            onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-          >
-            <div className="flex items-center">
-              <div className={`w-4 h-4 rounded-full mr-2 bg-gradient-to-r ${selectedTheme.from} ${selectedTheme.to}`}></div>
-              <span>{selectedTheme.name}</span>
-            </div>
-            <ChevronDown size={18} />
-          </button>
-          
-          {themeDropdownOpen && (
-            <div className="absolute mt-1 w-full bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
-              {themeOptions.map((theme) => (
-                <button 
-                  key={theme.id}
-                  className="w-full flex items-center p-2 hover:bg-gray-700 text-left"
-                  onClick={() => {
-                    setSelectedTheme(theme);
-                    setThemeDropdownOpen(false);
-                  }}
-                >
-                  <div className={`w-4 h-4 rounded-full mr-2 bg-gradient-to-r ${theme.from} ${theme.to}`}></div>
-                  <span>{theme.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-    
-    {/* Field Management */}
-    <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Your Fields</h2>
-        <button 
-          onClick={() => setPreviewMode(!previewMode)}
-          className="flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg"
-        >
-          {previewMode ? <Edit size={16} className="mr-2" /> : <Eye size={16} className="mr-2" />}
-          {previewMode ? 'Edit Mode' : 'Preview'}
-        </button>
-      </div>
-      
-      {previewMode ? (
-        /* Preview Mode */
-        <div className="space-y-4 max-w-md mx-auto">
-          <div className="p-6 bg-gray-800 rounded-xl border border-gray-700">
-            <div className="flex flex-col items-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold mb-2">
-                {displayName.split(' ').map(n => n[0]).join('')}
-              </div>
-              <h2 className="text-xl font-bold">{displayName}</h2>
-              <p className="text-gray-400">@{username}</p>
-            </div>
-            
-            <div className="space-y-3">
-              {fields.map((field) => (
-                field.title && field.link ? (
-                  <a 
-                    key={field.id}
-                    href={field.link}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className={`flex items-center p-3 rounded-lg text-white ${getGradientClasses()}`}
-                  >
-                    {field.image && (
-                      <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
-                        <img src={field.image} alt={field.title} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <span>{field.title}</span>
-                  </a>
-                ) : null
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Edit Mode */
-        <div className="space-y-4">
-          {fields.map((field) => (
-            <div key={field.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-medium">Field #{field.id}</h3>
-                <button 
-                  onClick={() => deleteField(field.id)}
-                  className="p-1 text-red-400 hover:text-red-300"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-400 mb-1">Title</label>
-                  <input 
-                    type="text" 
-                    value={field.title} 
-                    onChange={(e) => updateField(field.id, 'title', e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2"
-                    placeholder="LinkedIn"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 mb-1">Link</label>
-                  <input 
-                    type="text" 
-                    value={field.link} 
-                    onChange={(e) => updateField(field.id, 'link', e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2"
-                    placeholder="https://linkedin.com/in/username"
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <label className="block text-gray-400 mb-1">Image URL (Optional)</label>
-                <input 
-                  type="text" 
-                  value={field.image} 
-                  onChange={(e) => updateField(field.id, 'image', e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2"
-                  placeholder="https://example.com/image.png"
-                />
-              </div>
-            </div>
-          ))}
-          
-          <button 
-            onClick={addField}
-            className="w-full p-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-dashed border-gray-600 flex items-center justify-center"
-          >
-            <Plus size={18} className="mr-2" />
-            <span>Add New Field</span>
-          </button>
-        </div>
-      )}
-      
-      {/* Action Buttons */}
-      <div className="flex justify-between mt-6">
-        <button 
-          onClick={() => setPreviewMode(!previewMode)}
-          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg"
-        >
-          {previewMode ? 'Back to Editing' : 'Preview'}
-        </button>
-        <button 
-          className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 rounded-lg"
-        >
-          <Save size={18} className="inline mr-2" />
-          Save Changes
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-          
-          {/* Logs Section */}
-          {activeTab === 'logs' && (
-            <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-              <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
-              <div className="space-y-4">
-                {recentLogs.map((log) => (
-                  <div key={log.id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="p-2 rounded-lg bg-indigo-500/20 mr-4">
-                        <Globe size={18} className="text-indigo-400" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{log.country}</h4>
-                        <p className="text-gray-400 text-sm">Visited {log.page} page</p>
                       </div>
                     </div>
-                    <span className="text-gray-400 text-sm">{log.time}</span>
                   </div>
-                ))}
+                </div>
+              </div>
+
+              {/* Geographic Distribution and Daily Activity */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Geographic Distribution */}
+                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+                  <h3 className="font-medium mb-6">Geographic Distribution</h3>
+                  <div className="space-y-4">
+                    {countryData.map((country, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Globe size={16} className="text-gray-400 mr-2" />
+                          <span>{country.country}</span>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <span className="text-gray-400">{country.percentage}%</span>
+                          <div className="w-24 bg-gray-800 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600" 
+                              style={{ width: `${country.percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Hourly Activity */}
+                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+                  <h3 className="font-medium mb-6">Hourly Activity</h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={hourlyActivityData}
+                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                      >
+                        <XAxis 
+                          dataKey="hour" 
+                          tick={{ fill: '#9ca3af' }}
+                          tickLine={{ stroke: '#4b5563' }}
+                          tickFormatter={(hour) => `${hour}:00`}
+                        />
+                        <YAxis 
+                          tick={{ fill: '#9ca3af' }}
+                          tickLine={{ stroke: '#4b5563' }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }}
+                          itemStyle={{ color: '#d1d5db' }}
+                          labelStyle={{ color: '#f9fafb' }}
+                          formatter={(value, name) => [`${value} visits`, `${name}`]}
+                          labelFormatter={(hour) => `Hour ${hour}:00`}
+                        />
+                        <Bar dataKey="visits" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Export Data Button */}
+              <div className="flex justify-end">
+                <button 
+                  onClick={exportAnalyticsData}
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white"
+                >
+                  <Download size={16} className="mr-2" />
+                  Export Analytics Data
+                </button>
               </div>
             </div>
           )}
-        </main>
-      </div>
+
+          {/* Customization Section */}
+          {activeTab === 'customization' && (
+            <div className="space-y-6">
+              {/* Profile URL */}
+              <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+                <h3 className="font-medium mb-4">Profile URL</h3>
+                <div className="flex flex-col md:flex-row md:items-center">
+                  <div className="flex-1">
+                    <div className="flex items-center p-2 bg-gray-800 rounded-lg">
+                      <span className="text-gray-400">rinkuu.app/</span>
+                      <input 
+                        type="text" 
+                        value={username} 
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="flex-1 bg-transparent border-none outline-none"
+                      />
+                    </div>
+                  </div>
+                  <button className="mt-3 md:mt-0 md:ml-3 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white">
+                    Save
+                  </button>
+                </div>
+              </div>
+              
+              {/* Display Name */}
+              <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+                <h3 className="font-medium mb-4">Display Name</h3>
+                <div className="flex flex-col md:flex-row md:items-center">
+                  <div className="flex-1">
+                    <input 
+                      type="text" 
+                      value={displayName} 
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="w-full p-2 bg-gray-800 rounded-lg border-none outline-none"
+                    />
+                  </div>
+                  <button className="mt-3 md:mt-0 md:ml-3 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white">
+                    Save
+                  </button>
+                </div>
+              </div>
+              
+              {/* Theme Selection */}
+              <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+                <h3 className="font-medium mb-4">Theme</h3>
+                <div className="relative">
+                  <button 
+                    onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+                    className="flex items-center justify-between w-full p-2 bg-gray-800 rounded-lg"
+                  >
+                    <div className="flex items-center">
+                      <div className={`w-4 h-4 rounded-full mr-2 bg-gradient-to-r ${selectedTheme.from} ${selectedTheme.to}`}></div>
+                      <span>{selectedTheme.name}</span>
+                    </div>
+                    <ChevronDown size={16} />
+                  </button>
+                  
+                  {themeDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-10">
+                    <div className="p-2">
+                      {themeOptions.map((theme) => (
+                        <button
+                          key={theme.id}
+                          onClick={() => {
+                            setSelectedTheme(theme);
+                            setThemeDropdownOpen(false);
+                          }}
+                          className={`flex items-center w-full p-2 rounded-lg hover:bg-gray-800 ${
+                            selectedTheme.id === theme.id ? 'bg-gray-800' : ''
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded-full mr-2 bg-gradient-to-r ${theme.from} ${theme.to}`}></div>
+                          <span>{theme.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Links Management */}
+            <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-medium">Links</h3>
+                <div className="flex items-center">
+                  <button 
+                    onClick={() => setPreviewMode(!previewMode)}
+                    className="flex items-center px-3 py-1 bg-gray-800 rounded-lg mr-2"
+                  >
+                    {previewMode ? <Edit size={16} className="mr-1" /> : <Eye size={16} className="mr-1" />}
+                    {previewMode ? 'Edit' : 'Preview'}
+                  </button>
+                  <button 
+                    onClick={addField}
+                    className="flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg"
+                  >
+                    <Plus size={16} className="mr-1" />
+                    Add Link
+                  </button>
+                </div>
+              </div>
+              
+              {previewMode ? (
+                <div className="max-w-md mx-auto">
+                  {fields.map((field) => (
+                  <div 
+                    key={field.id}
+                    className={`mb-4 p-4 rounded-lg ${getGradientClasses()} flex items-center justify-between`}
+                  >
+                    <div className="flex items-center">
+                    {field.image ? (
+                      <img src={field.image} alt={field.title} className="w-8 mr-6 h-8 rounded-full mr-3" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-700 mr-3"></div>
+                    )}
+                    <span className="text-white font-medium" style={{fontFamily: "Poppins"}}>{field.title}</span>
+                    </div>
+                    <ArrowUpRight size={16} className="text-white" />
+                  </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {fields.map((field) => (
+                    <div 
+                      key={field.id}
+                      className="p-4 bg-gray-800/50 rounded-lg"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-medium">Link #{field.id}</h4>
+                        <button 
+                          onClick={() => deleteField(field.id)}
+                          className="p-1 text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-gray-400 text-sm mb-1">Title</label>
+                          <input 
+                            type="text" 
+                            value={field.title} 
+                            onChange={(e) => updateField(field.id, 'title', e.target.value)}
+                            className="w-full p-2 bg-gray-900 rounded-lg border border-gray-700"
+                            placeholder="Enter link title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-400 text-sm mb-1">Icon/Logo Url</label>
+                          <input 
+                            type="text" 
+                            value={field.image} 
+                            onChange={(e) => updateField(field.id, 'image', e.target.value)}
+                            className="w-full p-2 bg-gray-900 rounded-lg border border-gray-700"
+                            placeholder="Enter media url"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-400 text-sm mb-1">URL</label>
+                          <input 
+                            type="text" 
+                            value={field.link} 
+                            onChange={(e) => updateField(field.id, 'link', e.target.value)}
+                            className="w-full p-2 bg-gray-900 rounded-lg border border-gray-700"
+                            placeholder="https://example.com"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Save Button */}
+            <div className="flex justify-end">
+              <button className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white">
+                <Save size={16} className="mr-2" />
+                Save Changes
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Logs Section */}
+        {activeTab === 'logs' && (
+          <div className="space-y-6">
+            <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+              <h3 className="font-medium mb-6">Recent Activity</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-gray-400 border-b border-gray-800">
+                      <th className="pb-3 font-medium">Country</th>
+                      <th className="pb-3 font-medium">Time</th>
+                      <th className="pb-3 font-medium">Page</th>
+                      <th className="pb-3 font-medium">Device</th>
+                      <th className="pb-3 font-medium">IP</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-gray-800">
+                        <td className="py-3">
+                          <div className="flex items-center">
+                            <Globe size={16} className="text-gray-400 mr-2" />
+                            <span>{log.country}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 text-gray-400">{log.time}</td>
+                        <td className="py-3">{log.page}</td>
+                        <td className="py-3">
+                          <div className="flex items-center">
+                            {log.device === 'Mobile' ? (
+                              <Smartphone size={16} className="text-indigo-400 mr-1" />
+                            ) : (
+                              <Laptop size={16} className="text-purple-400 mr-1" />
+                            )}
+                            <span>{log.device}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 text-gray-400">{log.ip}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            {/* Export Activity Logs */}
+            <div className="flex justify-end">
+              <button 
+                onClick={exportAnalyticsData}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white"
+              >
+                <Download size={16} className="mr-2" />
+                Export Activity Logs
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
-  );
-}
+  </div>
+);
+};
 
 export default DashboardPage;
