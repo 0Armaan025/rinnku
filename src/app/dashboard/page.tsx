@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, BarChart3, Settings, ClipboardList, LogOut, Globe, Link2, Users, ArrowUpRight, Plus, Edit, Eye, Save, Trash2, ChevronDown, Calendar, Clock, Smartphone, Laptop, Download, Tag } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import AuthButton from '@/components/auth-button/AuthButton';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
@@ -419,46 +419,46 @@ const DashboardPage = (props: Props) => {
         {/* Navigation */}
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
-            <li>
+            <li className='cursor-pointer'>
               <button 
                 onClick={() => {setActiveTab('profile'); setSidebarOpen(false);}}
-                className={`flex items-center w-full p-2 rounded-lg ${activeTab === 'profile' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
+                className={`flex items-center w-full p-2 cursor-pointer rounded-lg ${activeTab === 'profile' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
               >
                 <User size={18} className={activeTab === 'profile' ? 'text-purple-400' : 'text-gray-400'} />
                 <span className="ml-3">Profile</span>
               </button>
             </li>
-            <li>
+            <li className='cursor-pointer'>
               <button 
                 onClick={() => {setActiveTab('dashboard'); setSidebarOpen(false);}}
-                className={`flex items-center w-full p-2 rounded-lg ${activeTab === 'dashboard' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
+                className={`flex items-center w-full cursor-pointer p-2 rounded-lg ${activeTab === 'dashboard' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
               >
                 <BarChart3 size={18} className={activeTab === 'dashboard' ? 'text-purple-400' : 'text-gray-400'} />
                 <span className="ml-3">Dashboard</span>
               </button>
             </li>
-            <li>
+            <li className='cursor-pointer'>
               <button 
                 onClick={() => {setActiveTab('customization'); setSidebarOpen(false);}}
-                className={`flex items-center w-full p-2 rounded-lg ${activeTab === 'customization' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
+                className={`flex items-center w-full  cursor-pointer  p-2 rounded-lg ${activeTab === 'customization' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
               >
                 <Settings size={18} className={activeTab === 'customization' ? 'text-purple-400' : 'text-gray-400'} />
                 <span className="ml-3">Customization</span>
               </button>
             </li>
-            <li>
+            <li className='cursor-pointer'>
               <button 
                 onClick={() => {setActiveTab('logs'); setSidebarOpen(false);}}
-                className={`flex items-center w-full p-2 rounded-lg ${activeTab === 'logs' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
+                className={`flex items-center w-full cursor-pointer  p-2 rounded-lg ${activeTab === 'logs' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
               >
                 <ClipboardList size={18} className={activeTab === 'logs' ? 'text-purple-400' : 'text-gray-400'} />
                 <span className="ml-3">Logs</span>
               </button>
             </li>
-            <li>
+            <li className='cursor-pointer'>
               <button 
                 onClick={() => {setActiveTab('promocode'); setSidebarOpen(false);}}
-                className={`flex items-center w-full p-2 rounded-lg ${activeTab === 'promocode' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
+                className={`flex items-center w-full cursor-pointer  p-2 rounded-lg ${activeTab === 'promocode' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
               >
                 <Tag size={18} className={activeTab === 'promocode' ? 'text-purple-400' : 'text-gray-400'} />
                 <span className="ml-3">Promo code</span>
@@ -469,7 +469,9 @@ const DashboardPage = (props: Props) => {
         
         {/* Logout button */}
         <div className="p-4 border-t border-gray-800">
-          <button className="flex items-center w-full p-2 rounded-lg hover:bg-gray-800/40">
+          <button
+          onClick={() => signOut()}
+          className="flex items-center w-full p-2 rounded-lg cursor-pointer hover:bg-gray-800/40">
             <LogOut size={18} className="text-gray-400" />
             <span className="ml-3">Log Out</span>
           </button>
