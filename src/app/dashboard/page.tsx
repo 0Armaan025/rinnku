@@ -7,6 +7,7 @@ import AuthButton from '@/components/auth-button/AuthButton';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
 import PromoCodeInput from '@/components/promo-code-input/PromoCodeInput';
+import CustomizationComponent from '@/components/customizaton/CustomizationComponent';
 
 type Props = {};
 
@@ -35,13 +36,7 @@ interface FieldType {
 }
 
 // Theme options for customization
-const themeOptions = [
-  { id: 'midnight', name: 'Midnight Purple', from: 'from-indigo-500', to: 'to-purple-600' },
-  { id: 'ocean', name: 'Ocean Blue', from: 'from-blue-500', to: 'to-cyan-600' },
-  { id: 'sunset', name: 'Sunset Orange', from: 'from-orange-500', to: 'to-red-600' },
-  { id: 'forest', name: 'Forest Green', from: 'from-green-500', to: 'to-emerald-600' },
-  { id: 'royal', name: 'Royal Gold', from: 'from-yellow-500', to: 'to-amber-600' },
-];
+
 
 const DashboardPage = (props: Props) => {
   const { data: session, status } = useSession();
@@ -54,15 +49,14 @@ const DashboardPage = (props: Props) => {
   const [displayName, setDisplayName] = useState('John Doe');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isProfilePublic, setIsProfilePublic] = useState(true);
-  const [selectedTheme, setSelectedTheme] = useState(themeOptions[0]);
-  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  
   const [promoCode, setPromoCode] = useState('');
-  const [fields, setFields] = useState<FieldType[]>([
-    { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: '', clicks: 215 },
-    { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', clicks: 432 },
-    { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '', clicks: 187 },
-  ]);
-  const [previewMode, setPreviewMode] = useState(false);
+  
+const [fields, setFields] = useState<FieldType[]>([
+        { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: '', clicks: 215 },
+        { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', clicks: 432 },
+        { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '', clicks: 187 },
+      ]);
 
   // Fetch analytics data
   const fetchAnalyticsData = async () => {
@@ -86,6 +80,7 @@ const DashboardPage = (props: Props) => {
       setLoading(false);
     }
   };
+  
 
   // Generate mock click data
   const generateMockClicks = (count: number): ClickData[] => {
@@ -319,27 +314,7 @@ const DashboardPage = (props: Props) => {
   };
 
   // Add new field
-  const addField = () => {
-    const newId = fields.length > 0 ? Math.max(...fields.map(f => f.id)) + 1 : 1;
-    setFields([...fields, { id: newId, title: '', link: '', image: '', clicks: 0 }]);
-  };
-
-  // Delete field
-  const deleteField = (id: number) => {
-    setFields(fields.filter((field) => field.id !== id));
-  };
   
-  const updateField = (id: number, key: keyof FieldType, value: string | number) => {
-    setFields(fields.map((field) =>
-      field.id === id ? { ...field, [key]: value } : field
-    ));
-  };
-
-  // Get gradient classes based on selected theme
-  const getGradientClasses = () => {
-    return `bg-gradient-to-r ${selectedTheme.from} ${selectedTheme.to}`;
-  };
-
   // Export analytics data
   const exportAnalyticsData = () => {
     if (!analyticsData) return;
@@ -615,7 +590,7 @@ const DashboardPage = (props: Props) => {
                     <button
                       key={range}
                       onClick={() => setTimeRange(range)}
-                      className={`px-3 py-1 rounded-lg ${timeRange === range ? getGradientClasses() : 'bg-gray-800'}`}
+                      className={`px-3 py-1 rounded-lg ${ 'bg-gray-800'}`}
                     >
                       {range.charAt(0).toUpperCase() + range.slice(1)}
                     </button>
@@ -887,188 +862,7 @@ const DashboardPage = (props: Props) => {
 
           {/* Customization Section */}
           {activeTab === 'customization' && (
-            <div className="space-y-6">
-              {/* Profile URL */}
-              <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                <h3 className="font-medium mb-4">Profile URL</h3>
-                <div className="flex flex-col md:flex-row md:items-center">
-                  <div className="flex-1">
-                    <div className="flex items-center p-2 bg-gray-800 rounded-lg">
-                      <span className="text-gray-400">rinkuu.app/</span>
-                      <input 
-                        type="text" 
-                        value={username} 
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="flex-1 bg-transparent border-none outline-none"
-                      />
-                    </div>
-                  </div>
-                  <button className="mt-3 md:mt-0 md:ml-3 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white">
-                    Save
-                  </button>
-                </div>
-              </div>
-              
-              {/* Display Name */}
-              <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                <h3 className="font-medium mb-4">Display Name</h3>
-                <div className="flex flex-col md:flex-row md:items-center">
-                  <div className="flex-1">
-                    <input 
-                      type="text" 
-                      value={displayName} 
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full p-2 bg-gray-800 rounded-lg border-none outline-none"
-                    />
-                  </div>
-                  <button className="mt-3 md:mt-0 md:ml-3 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white">
-                    Save
-                  </button>
-                </div>
-              </div>
-              
-              {/* Theme Selection */}
-              <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                <h3 className="font-medium mb-4">Theme</h3>
-                <div className="relative">
-                  <button 
-                    onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-                    className="flex items-center justify-between w-full p-2 bg-gray-800 rounded-lg"
-                  >
-                    <div className="flex items-center">
-                      <div className={`w-4 h-4 rounded-full mr-2 bg-gradient-to-r ${selectedTheme.from} ${selectedTheme.to}`}></div>
-                      <span>{selectedTheme.name}</span>
-                    </div>
-                    <ChevronDown size={16} />
-                  </button>
-                  
-                  {themeDropdownOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-10">
-                    <div className="p-2">
-                      {themeOptions.map((theme) => (
-                        <button
-                          key={theme.id}
-                          onClick={() => {
-                            setSelectedTheme(theme);
-                            setThemeDropdownOpen(false);
-                          }}
-                          className={`flex items-center w-full p-2 rounded-lg hover:bg-gray-800 ${
-                            selectedTheme.id === theme.id ? 'bg-gray-800' : ''
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded-full mr-2 bg-gradient-to-r ${theme.from} ${theme.to}`}></div>
-                          <span>{theme.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Links Management */}
-            <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-medium">Links</h3>
-                <div className="flex items-center">
-                  <button 
-                    onClick={() => setPreviewMode(!previewMode)}
-                    className="flex items-center px-3 py-1 bg-gray-800 rounded-lg mr-2"
-                  >
-                    {previewMode ? <Edit size={16} className="mr-1" /> : <Eye size={16} className="mr-1" />}
-                    {previewMode ? 'Edit' : 'Preview'}
-                  </button>
-                  <button 
-                    onClick={addField}
-                    className="flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg"
-                  >
-                    <Plus size={16} className="mr-1" />
-                    Add Link
-                  </button>
-                </div>
-              </div>
-              
-              {previewMode ? (
-                <div className="max-w-md mx-auto">
-                  {fields.map((field) => (
-                  <div 
-                    key={field.id}
-                    className={`mb-4 p-4 rounded-lg ${getGradientClasses()} flex items-center justify-between`}
-                  >
-                    <div className="flex items-center">
-                    {field.image ? (
-                      <img src={field.image} alt={field.title} className="w-8 mr-6 h-8 rounded-full mr-3" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-700 mr-3"></div>
-                    )}
-                    <span className="text-white font-medium" style={{fontFamily: "Poppins"}}>{field.title}</span>
-                    </div>
-                    <ArrowUpRight size={16} className="text-white" />
-                  </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {fields.map((field) => (
-                    <div 
-                      key={field.id}
-                      className="p-4 bg-gray-800/50 rounded-lg"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-medium">Link #{field.id}</h4>
-                        <button 
-                          onClick={() => deleteField(field.id)}
-                          className="p-1 text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-gray-400 text-sm mb-1">Title</label>
-                          <input 
-                            type="text" 
-                            value={field.title} 
-                            onChange={(e) => updateField(field.id, 'title', e.target.value)}
-                            className="w-full p-2 bg-gray-900 rounded-lg border border-gray-700"
-                            placeholder="Enter link title"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-400 text-sm mb-1">Icon/Logo Url</label>
-                          <input 
-                            type="text" 
-                            value={field.image} 
-                            onChange={(e) => updateField(field.id, 'image', e.target.value)}
-                            className="w-full p-2 bg-gray-900 rounded-lg border border-gray-700"
-                            placeholder="Enter media url"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-gray-400 text-sm mb-1">URL</label>
-                          <input 
-                            type="text" 
-                            value={field.link} 
-                            onChange={(e) => updateField(field.id, 'link', e.target.value)}
-                            className="w-full p-2 bg-gray-900 rounded-lg border border-gray-700"
-                            placeholder="https://example.com"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <button className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white">
-                <Save size={16} className="mr-2" />
-                Save Changes
-              </button>
-            </div>
-          </div>
+            <CustomizationComponent/>
         )}
         
         {/* Logs Section */}

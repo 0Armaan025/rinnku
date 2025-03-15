@@ -154,7 +154,7 @@ export default function UserPage({ params }: { params: { username: string } }) {
         )}
       </div>
       
-      
+      {/* Footer */}
       
     </main>
   );
