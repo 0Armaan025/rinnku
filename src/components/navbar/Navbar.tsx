@@ -77,6 +77,7 @@ const Navbar = () => {
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center">
+            <Link href="/auth">
               <button 
                 className="relative overflow-hidden md:hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium shadow-md transition-all duration-300 hover:shadow-indigo-500/30 mr-2"
               >
@@ -84,6 +85,7 @@ const Navbar = () => {
                   Get Started
                 </span>
               </button>
+              </Link>
               
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
