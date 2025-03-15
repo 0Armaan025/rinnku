@@ -1,9 +1,12 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { User, BarChart3, Settings, ClipboardList, LogOut, Globe, Link2, Users, ArrowUpRight, Plus, Edit, Eye, Save, Trash2, ChevronDown, Calendar, Clock, Smartphone, Laptop, Download } from 'lucide-react';
+import { User, BarChart3, Settings, ClipboardList, LogOut, Globe, Link2, Users, ArrowUpRight, Plus, Edit, Eye, Save, Trash2, ChevronDown, Calendar, Clock, Smartphone, Laptop, Download, Tag } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
 import { signIn, useSession } from 'next-auth/react';
 import AuthButton from '@/components/auth-button/AuthButton';
+import { QRCodeSVG } from 'qrcode.react';
+import Image from 'next/image';
+import PromoCodeInput from '@/components/promo-code-input/PromoCodeInput';
 
 type Props = {};
 
@@ -53,6 +56,7 @@ const DashboardPage = (props: Props) => {
   const [isProfilePublic, setIsProfilePublic] = useState(true);
   const [selectedTheme, setSelectedTheme] = useState(themeOptions[0]);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
   const [fields, setFields] = useState<FieldType[]>([
     { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: '', clicks: 215 },
     { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', clicks: 432 },
@@ -402,6 +406,7 @@ const DashboardPage = (props: Props) => {
         
         {/* User profile summary */}
         <div className="p-4 flex items-center border-b border-gray-800">
+        <Image src="https://cdn-icons-png.flaticon.com/128/432/432492.png" height={40} width={20} className='mr-2' alt="diamond"/>
           <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
             JD
           </div>
@@ -450,6 +455,15 @@ const DashboardPage = (props: Props) => {
                 <span className="ml-3">Logs</span>
               </button>
             </li>
+            <li>
+              <button 
+                onClick={() => {setActiveTab('promocode'); setSidebarOpen(false);}}
+                className={`flex items-center w-full p-2 rounded-lg ${activeTab === 'promocode' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
+              >
+                <Tag size={18} className={activeTab === 'promocode' ? 'text-purple-400' : 'text-gray-400'} />
+                <span className="ml-3">Promo code</span>
+              </button>
+            </li>
           </ul>
         </nav>
         
@@ -472,6 +486,7 @@ const DashboardPage = (props: Props) => {
               {activeTab === 'dashboard' && 'Analytics Dashboard'}
               {activeTab === 'customization' && 'Rinkuu Customization'}
               {activeTab === 'logs' && 'Activity Logs'}
+              {activeTab === 'promocode' && 'Promo code'}
             </h1>
             <div className="flex items-center space-x-4">
               <button
@@ -532,8 +547,9 @@ const DashboardPage = (props: Props) => {
           {/* Profile Section */}
           {activeTab === 'profile' && (
             <div className="grid grid-cols-1 gap-6">
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800 flex flex-row items-between justify-between ">
                 <div className="flex flex-col md:flex-row md:items-center">
+                
                   <div className="w-24 h-24 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
                     JD
                   </div>
@@ -546,6 +562,15 @@ const DashboardPage = (props: Props) => {
                     </button>
                   </div>
                 </div>
+
+                <QRCodeSVG value={`https://rinnku.vercel.app/@${username}`} bgColor='white' level="H" marginSize={2} title={displayName} minVersion={1} imageSettings={
+                  {
+                    src: '/logo.png',
+                    height: 100,
+                    width: 100,
+                    excavate: false,
+                  }
+                }/>
               </div>
               
               <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
@@ -570,6 +595,12 @@ const DashboardPage = (props: Props) => {
               </div>
             </div>
           )}
+
+{activeTab === 'promocode' && (
+  <PromoCodeInput/>
+)}
+
+
           
           {/* Dashboard Section */}
           {activeTab === 'dashboard' && (
