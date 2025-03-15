@@ -14,9 +14,9 @@ const nextConfig: NextConfig = {
     ],
     
   },
-  reactStrictMode: true,
   
-  optimizeFonts: true, 
+  
+  
 };
 
 export default nextConfig;
