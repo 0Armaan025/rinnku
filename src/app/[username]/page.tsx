@@ -37,7 +37,7 @@ const layoutTemplates = [
   { id: 'minimal', name: 'Minimal' },
 ];
 
-export default function UserPage({ params }: { params: { username: string } }) {
+export default function UserPage() {
   const [currentTheme, setCurrentTheme] = useState(themeOptions[0]);
   const [currentLayout, setCurrentLayout] = useState(layoutTemplates[0]);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
