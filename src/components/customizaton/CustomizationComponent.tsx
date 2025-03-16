@@ -9,143 +9,86 @@ import {
   Crop, Grip, Layers, CheckCircle, Circle,
   Move, Headphones, Video, ShoppingBag, MessageCircle, ImageIcon, Upload
 } from 'lucide-react';
+import { renderPreview, addField, saveChanges, updateField, deleteField , handleLinkIconUpload} from './helperFunctions';
+
+import FieldType from './types';
+
+import customizationUtils from './utils';
 
 type Props = {}
 
-interface FieldType {
-  id: number;
-  title: string;
-  link: string;
-  image: string;
-  type?: string;
-  hidden?: boolean;
-  animation?: string;
-}
 
 // Enhanced theme options with more professional palette
-const themeOptions = [
-  {
-    id: 'midnight',
-    name: 'Midnight',
-    from: 'from-indigo-600',
-    to: 'to-blue-700',
-    cardBg: 'bg-gray-900/60',
-    textColor: 'text-white',
-    accentColor: 'text-blue-400',
-    borderColor: 'border-gray-700',
-    iconColor: 'text-blue-400'
-  },
-  {
-    id: 'slate',
-    name: 'Slate',
-    from: 'from-slate-600',
-    to: 'to-slate-800',
-    cardBg: 'bg-gray-900/60',
-    textColor: 'text-white',
-    accentColor: 'text-slate-300',
-    borderColor: 'border-gray-700',
-    iconColor: 'text-slate-300'
-  },
-  {
-    id: 'emerald',
-    name: 'Emerald',
-    from: 'from-emerald-500',
-    to: 'to-teal-700',
-    cardBg: 'bg-gray-900/60',
-    textColor: 'text-white',
-    accentColor: 'text-emerald-300',
-    borderColor: 'border-gray-700',
-    iconColor: 'text-emerald-400'
-  },
-  {
-    id: 'amber',
-    name: 'Amber',
-    from: 'from-amber-500',
-    to: 'to-orange-600',
-    cardBg: 'bg-gray-900/70',
-    textColor: 'text-white',
-    accentColor: 'text-amber-300',
-    borderColor: 'border-gray-700',
-    iconColor: 'text-amber-400'
-  },
-  {
-    id: 'rose',
-    name: 'Rose',
-    from: 'from-rose-500',
-    to: 'to-pink-600',
-    cardBg: 'bg-gray-900/70',
-    textColor: 'text-white',
-    accentColor: 'text-rose-300',
-    borderColor: 'border-gray-700',
-    iconColor: 'text-rose-400'
-  },
-  {
-    id: 'monochrome',
-    name: 'Monochrome',
-    from: 'from-gray-600',
-    to: 'to-gray-800',
-    cardBg: 'bg-gray-900/60',
-    textColor: 'text-white',
-    accentColor: 'text-gray-300',
-    borderColor: 'border-gray-700',
-    iconColor: 'text-gray-400'
-  },
-];
 
-// Simplified layout templates for cleaner options
-const layoutTemplates = [
-  {
-    id: 'standard',
-    name: 'Standard',
-    icon: <Layout size={16} />,
-    description: 'Classic stacked layout'
-  },
-  {
-    id: 'compact',
-    name: 'Compact',
-    icon: <PanelLeft size={16} />,
-    description: 'Space-efficient design'
-  },
-  {
-    id: 'minimal',
-    name: 'Minimal',
-    icon: <Crop size={16} />,
-    description: 'Clean, distraction-free design'
-  },
-  {
-    id: 'grid',
-    name: 'Grid',
-    icon: <Grip size={16} />,
-    description: 'Two-column grid layout'
-  },
-];
-
-// Link animations
-const animationOptions = [
-  { id: 'none', name: 'None', description: 'No animation' },
-  { id: 'pulse', name: 'Pulse', description: 'Gentle pulsing effect' },
-  { id: 'scale', name: 'Scale', description: 'Grows slightly on hover' },
-  { id: 'slide', name: 'Slide', description: 'Slides in from the side' }
-];
-
-// Link types
-const linkTypes = [
-  { id: 'default', name: 'Default', icon: <LinkIcon size={16} /> },
-  { id: 'social', name: 'Social', icon: <User size={16} /> },
-  { id: 'music', name: 'Music', icon: <Headphones size={16} /> },
-  { id: 'video', name: 'Video', icon: <Video size={16} /> },
-  { id: 'shop', name: 'Shop', icon: <ShoppingBag size={16} /> },
-  { id: 'message', name: 'Message', icon: <MessageCircle size={16} /> }
-];
 
 export default function CustomizationComponent(props: Props) {
   // component code remains exactly the same
 
+  const handleDragStart = (id: number) => {
+    setDraggingField(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: number) => {
+    e.preventDefault();
+    if (draggingField === null || draggingField === id) return;
+
+    const draggedItemIndex = fields.findIndex(field => field.id === draggingField);
+    const targetIndex = fields.findIndex(field => field.id === id);
+
+    if (draggedItemIndex === -1 || targetIndex === -1) return;
+
+    const newFields = [...fields];
+    const draggedItem = newFields[draggedItemIndex];
+
+    // Remove the dragged item
+    newFields.splice(draggedItemIndex, 1);
+    // Insert at the target position
+    newFields.splice(targetIndex, 0, draggedItem);
+
+    setFields(newFields);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingField(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingField(null);
+  };
+
+  // Avatar handling functions
+  const handleAvatarClick = () => {
+    if (avatarInputRef.current) {
+      avatarInputRef.current.click();
+    }
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAvatarFile(e.target.files[0]);
+      setAvatar(''); // Clear URL if we're using a file
+    }
+  };
+
+  const handleAvatarDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setAvatarFile(e.dataTransfer.files[0]);
+      setAvatar(''); // Clear URL if we're using a file
+    }
+  };
+
+  const handleAvatarDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+
   // UI State
   const [activeTab, setActiveTab] = useState('design');
-  const [selectedTheme, setSelectedTheme] = useState(themeOptions[0]);
-  const [selectedLayout, setSelectedLayout] = useState(layoutTemplates[0]);
-  const [selectedAnimation, setSelectedAnimation] = useState(animationOptions[0]);
+  const [selectedTheme, setSelectedTheme] = useState(customizationUtils.themeOptions[0]);
+  const [selectedLayout, setSelectedLayout] = useState(customizationUtils.layoutTemplates[0]);
+  const [selectedAnimation, setSelectedAnimation] = useState(customizationUtils.animationOptions[0]);
   const [previewMode, setPreviewMode] = useState(false);
   const [modified, setModified] = useState(false);
   const [savedMessage, setSavedMessage] = useState(false);
@@ -225,215 +168,7 @@ export default function CustomizationComponent(props: Props) {
   }, [avatarFile]);
 
   // Field management functions
-  const addField = () => {
-    const newId = fields.length > 0 ? Math.max(...fields.map(f => f.id)) + 1 : 1;
-    setFields([...fields, {
-      id: newId,
-      title: '',
-      link: '',
-      image: '',
-      type: 'default',
-      animation: 'none'
-    }]);
-  };
-
-  const deleteField = (id: number) => {
-    setFields(fields.filter((field) => field.id !== id));
-  };
-
-  const updateField = (id: number, key: keyof FieldType, value: string | number | boolean) => {
-    setFields(fields.map((field) =>
-      field.id === id ? { ...field, [key]: value } : field
-    ));
-  };
-
-  // Drag and drop functions
-  const handleDragStart = (id: number) => {
-    setDraggingField(id);
-  };
-
-  const handleDragOver = (e: React.DragEvent, id: number) => {
-    e.preventDefault();
-    if (draggingField === null || draggingField === id) return;
-
-    const draggedItemIndex = fields.findIndex(field => field.id === draggingField);
-    const targetIndex = fields.findIndex(field => field.id === id);
-
-    if (draggedItemIndex === -1 || targetIndex === -1) return;
-
-    const newFields = [...fields];
-    const draggedItem = newFields[draggedItemIndex];
-
-    // Remove the dragged item
-    newFields.splice(draggedItemIndex, 1);
-    // Insert at the target position
-    newFields.splice(targetIndex, 0, draggedItem);
-
-    setFields(newFields);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDraggingField(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggingField(null);
-  };
-
-  // Avatar handling functions
-  const handleAvatarClick = () => {
-    if (avatarInputRef.current) {
-      avatarInputRef.current.click();
-    }
-  };
-
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAvatarFile(e.target.files[0]);
-      setAvatar(''); // Clear URL if we're using a file
-    }
-  };
-
-  const handleAvatarDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setAvatarFile(e.dataTransfer.files[0]);
-      setAvatar(''); // Clear URL if we're using a file
-    }
-  };
-
-  const handleAvatarDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
-  // Handle link icon upload
-  const handleLinkIconUpload = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateField(id, 'image', reader.result as string);
-      };
-      reader.readAsDataURL(e.target.files[0]);
-    }
-  };
-
-  // Styling functions
-  const getGradientClasses = () => {
-    return `bg-gradient-to-r ${selectedTheme.from} ${selectedTheme.to}`;
-  };
-
-  const getButtonClasses = () => {
-    let classes = `mb-3 p-3 ${getGradientClasses()} flex items-center justify-between `;
-
-    if (roundedCorners) {
-      classes += 'rounded-lg ';
-    }
-
-    if (showBorders) {
-      classes += 'border border-gray-700/30 ';
-    }
-
-    if (showShadows) {
-      classes += 'shadow-md ';
-    }
-
-    if (selectedLayout.id === 'compact') {
-      classes += 'py-2 ';
-    } else if (selectedLayout.id === 'minimal') {
-      classes += 'bg-opacity-90 border-0 ';
-    }
-
-    return classes;
-  };
-
-  const getAnimationClass = (animation: string) => {
-    switch (animation) {
-      case 'pulse': return 'hover:animate-pulse';
-      case 'scale': return 'transition-transform hover:scale-102';
-      case 'slide': return 'transition-transform hover:translate-x-1';
-      default: return '';
-    }
-  };
-
-  const saveChanges = () => {
-    setSavedMessage(true);
-    setModified(false);
-
-    setTimeout(() => {
-      setSavedMessage(false);
-    }, 3000);
-  };
-
-  const getLinkIcon = (field: FieldType) => {
-    // If the field has a custom image, use that
-    if (field.image) {
-      return (
-        <div className="w-4 h-4 mr-3 flex-shrink-0">
-          <img src={field.image} alt="" className="w-full h-full object-cover rounded" />
-        </div>
-      );
-    }
-    
-    // Otherwise use the type icon
-    const linkType = linkTypes.find(lt => lt.id === field.type);
-    return <span className="mr-3">{linkType ? linkType.icon : <LinkIcon size={16} />}</span>;
-  };
-
-  // Function to render the preview layout
-  // Function to render the preview layout
-  const renderPreview = () => {
-    const containerClasses = selectedLayout.id === 'grid'
-      ? 'grid grid-cols-2 gap-3'
-      : 'flex flex-col';
-
-    return (
-      <div className="max-w-md mx-auto">
-        {/* Profile Header */}
-        <div className="flex flex-col items-center mb-6">
-          {showAvatar && (
-            <div className={`w-20 h-20 rounded-full overflow-hidden ${showBorders ? 'border-2 ' + selectedTheme.borderColor : ''} mb-3`}>
-              {avatarFile && avatarPreview ? (
-                <img src={avatarPreview} alt={displayName} className="w-full h-full object-cover" />
-              ) : avatar ? (
-                <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
-              ) : (
-                <div className={`w-full h-full flex items-center justify-center ${getGradientClasses()}`}>
-                  <User size={32} className="text-white" />
-                </div>
-              )}
-            </div>
-          )}
-          <h1 className={`text-xl font-semibold ${selectedTheme.textColor}`}>{displayName}</h1>
-          {showBio && bio && (
-            <p className={`text-center text-sm mt-2 ${selectedTheme.textColor} max-w-xs opacity-80`}>
-              {bio}
-            </p>
-          )}
-        </div>
-
-        {/* Links */}
-        <div className={containerClasses}>
-          {fields.filter(f => !f.hidden).map((field) => (
-            <a
-              key={field.id}
-              href={field.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${getButtonClasses()} ${getAnimationClass(field.animation || 'none')} ${!buttonFullWidth && selectedLayout.id !== 'grid' ? 'self-center max-w-xs' : 'w-full'}`}
-            >
-              <div className="flex items-center">
-                {showLinkIcons && getLinkIcon(field)}
-                <span className={selectedTheme.textColor}>{field.title}</span>
-              </div>
-              <ArrowUpRight size={16} className={selectedTheme.textColor} />
-            </a>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
+  
   // Function to render the tabs content
   const renderTabContent = () => {
     if (activeTab === 'design') {
@@ -456,7 +191,7 @@ export default function CustomizationComponent(props: Props) {
 
               {themeDropdownOpen && (
                 <div className="absolute mt-1 w-full bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 overflow-hidden max-h-56 overflow-y-auto">
-                  {themeOptions.map((theme) => (
+                  {customizationUtils.themeOptions.map((theme) => (
                     <div
                       key={theme.id}
                       className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer"
@@ -492,7 +227,7 @@ export default function CustomizationComponent(props: Props) {
 
               {layoutDropdownOpen && (
                 <div className="absolute mt-1 w-full bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 overflow-hidden max-h-56 overflow-y-auto">
-                  {layoutTemplates.map((layout) => (
+                  {customizationUtils.layoutTemplates.map((layout) => (
                     <div
                       key={layout.id}
                       className="flex flex-col px-4 py-2 hover:bg-gray-700 cursor-pointer"
@@ -531,7 +266,7 @@ export default function CustomizationComponent(props: Props) {
 
               {animationDropdownOpen && (
                 <div className="absolute mt-1 w-full bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 overflow-hidden max-h-56 overflow-y-auto">
-                  {animationOptions.map((animation) => (
+                  {customizationUtils.animationOptions.map((animation) => (
                     <div
                       key={animation.id}
                       className="flex flex-col px-4 py-2 hover:bg-gray-700 cursor-pointer"
@@ -731,7 +466,13 @@ export default function CustomizationComponent(props: Props) {
                   <h3 className="text-xs uppercase text-gray-400 font-medium">Links</h3>
                   <button
                     className="flex items-center p-1 px-2 bg-blue-600 hover:bg-blue-700 rounded-md text-sm"
-                    onClick={addField}
+                    onClick={() => {
+                      addField(
+                        fields,
+                        setFields,
+                        
+                      );
+                    }}
                   >
                     <Plus size={14} className="mr-1" /> Add Link
                   </button>
@@ -755,7 +496,7 @@ export default function CustomizationComponent(props: Props) {
                             <input
                               type="text"
                               value={field.title}
-                              onChange={(e) => updateField(field.id, 'title', e.target.value)}
+                              onChange={(e) => updateField(field.id, 'title', e.target.value, fields, setFields)}
                               className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                               placeholder="Link Title"
                             />
@@ -763,13 +504,13 @@ export default function CustomizationComponent(props: Props) {
                           <div className="flex items-center">
                             <button
                               className="p-1 hover:bg-gray-700 rounded-md"
-                              onClick={() => updateField(field.id, 'hidden', !field.hidden)}
+                              onClick={() => updateField(field.id, 'hidden', !field.hidden, fields, setFields)}
                             >
                               <Eye size={16} className={field.hidden ? 'text-gray-500' : 'text-gray-300'} />
                             </button>
                             <button
                               className="p-1 hover:bg-gray-700 rounded-md ml-1"
-                              onClick={() => deleteField(field.id)}
+                              onClick={() => deleteField(field.id, fields, setFields)}
                             >
                               <Trash2 size={16} className="text-gray-500 hover:text-red-400" />
                             </button>
@@ -780,7 +521,7 @@ export default function CustomizationComponent(props: Props) {
                           <input
                             type="text"
                             value={field.link}
-                            onChange={(e) => updateField(field.id, 'link', e.target.value)}
+                            onChange={(e) => updateField(field.id, 'link', e.target.value, fields, setFields)}
                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                             placeholder="https://example.com"
                           />
@@ -790,13 +531,13 @@ export default function CustomizationComponent(props: Props) {
                           <div className="relative mr-3">
                             <div className="flex items-center bg-gray-700 border border-gray-600 rounded px-2 py-1">
                               <span className="text-xs mr-1">Type:</span>
-                              {linkTypes.find(lt => lt.id === field.type)?.icon || <LinkIcon size={14} />}
+                              {customizationUtils.linkTypes.find(lt => lt.id === field.type)?.icon || <LinkIcon size={14} />}
                               <select
                                 value={field.type}
-                                onChange={(e) => updateField(field.id, 'type', e.target.value)}
+                                onChange={(e) => updateField(field.id, 'type', e.target.value, fields, setFields)}
                                 className="bg-transparent text-xs ml-1 outline-none appearance-none  pl-1"
                               >
-                                {linkTypes.map(lt => (
+                                {customizationUtils.linkTypes.map(lt => (
                                   <option key={lt.id} value={lt.id} className='text-black hover:cursor-pointer hover:bg-white/30 transition-all'>{lt.name}</option>
                                 ))}
                               </select>
@@ -809,11 +550,11 @@ export default function CustomizationComponent(props: Props) {
                               <Sparkles size={14} className="mr-1" />
                               <select
                                 value={field.animation}
-                                onChange={(e) => updateField(field.id, 'animation', e.target.value)}
+                                onChange={(e) => updateField(field.id, 'animation', e.target.value, fields, setFields)}
                                 className="bg-transparent text-xs ml-1 outline-none appearance-none pl-1"
                               >
-                                {animationOptions.map(ao => (
-                                  <option key={ao.id} value={ao.id}>{ao.name}</option>
+                                {customizationUtils.animationOptions.map(ao => (
+                                  <option key={ao.id} value={ao.id} className="text-black hover:cursor-pointer"> {ao.name}</option>
                                 ))}
                               </select>
                             </div>
@@ -826,7 +567,7 @@ export default function CustomizationComponent(props: Props) {
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(e) => handleLinkIconUpload(field.id, e)}
+                                onChange={(e) => handleLinkIconUpload(field.id, e, fields, setFields)}
                               />
                             </label>
                           </div>
@@ -840,7 +581,13 @@ export default function CustomizationComponent(props: Props) {
                       <p className="text-gray-400">No links added yet</p>
                       <button
                         className="mt-2 px-4 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-sm"
-                        onClick={addField}
+                        onClick={()=>{
+                          addField(
+                            fields,
+                            setFields,
+                            
+                          );
+                        }}
                       >
                         Add Your First Link
                       </button>
@@ -875,7 +622,9 @@ export default function CustomizationComponent(props: Props) {
                       {!previewMode && (
                         <button
                           className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
-                          onClick={saveChanges}
+                          onClick={() => {
+                            saveChanges(setSavedMessage , setSavedMessage);
+                          }}
                           disabled={!modified}
                         >
                           <Save size={16} className="mr-2" />
@@ -915,7 +664,21 @@ export default function CustomizationComponent(props: Props) {
                     {/* Preview Panel */}
                     <div className={`w-full ${!previewMode ? 'lg:w-1/2' : 'lg:w-full lg:max-w-lg lg:mx-auto'} bg-gray-850 border border-gray-700 rounded-xl p-6`}>
                       <div className="bg-gray-900 rounded-lg p-6 min-h-[500px] flex flex-col">
-                        {renderPreview()}
+                        {renderPreview(
+                          selectedLayout,
+                          showAvatar,
+                          showBorders,
+                          selectedTheme,
+                          avatarFile,
+                          avatarPreview,
+                          avatar,
+                          displayName,
+                          showBio,
+                          bio,
+                          fields,
+                          buttonFullWidth,
+                          showLinkIcons
+                        )}
                       </div>
                     </div>
                   </div>
@@ -947,7 +710,9 @@ export default function CustomizationComponent(props: Props) {
                         {!previewMode && (
                           <button
                             className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
-                            onClick={saveChanges}
+                            onClick={() => {
+                              saveChanges(setSavedMessage , setSavedMessage);
+                            }}
                             disabled={!modified}
                           >
                             <Save size={16} className="mr-2" />
@@ -987,7 +752,21 @@ export default function CustomizationComponent(props: Props) {
                       {/* Preview Panel */}
                       <div className={`w-full ${!previewMode ? 'lg:w-1/2' : 'lg:w-full lg:max-w-lg lg:mx-auto'} bg-gray-850 border border-gray-700 rounded-xl p-6`}>
                         <div className="bg-gray-900 rounded-lg p-6 min-h-[500px] flex flex-col">
-                          {renderPreview()}
+                          {renderPreview(
+                            selectedLayout,
+                            showAvatar,
+                            showBorders,
+                            selectedTheme,
+                            avatarFile,
+                            avatarPreview,
+                            avatar,
+                            displayName,
+                            showBio,
+                            bio,
+                            fields,
+                            buttonFullWidth,
+                            showLinkIcons
+                          )}
                         </div>
                       </div>
                     </div>
