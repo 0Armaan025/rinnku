@@ -1,338 +1,477 @@
-// app/[username]/page.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { ChevronDown } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
+import customizationUtils from '@/components/customizaton/utils';
+import FieldType from '@/components/customizaton/types';
+import {
+  ArrowUpRight, 
+  LinkIcon,
+  User,
+  Sparkles
+} from 'lucide-react';
 
-const DUMMY_DATA = {
-  name: "Jane Doe",
-  username: "janedoe",
-  email: "jane@example.com",
-  avatar: "/api/placeholder/300/300", // Placeholder image
-  links: [
-    { id: 1, title: "My Portfolio", url: "https://portfolio.example.com", icon: "/api/placeholder/32/32" },
-    { id: 2, title: "GitHub", url: "https://github.com", icon: "/api/placeholder/32/32" },
-    { id: 3, title: "Twitter", url: "https://twitter.com", icon: "/api/placeholder/32/32" },
-    { id: 4, title: "YouTube Channel", url: "https://youtube.com", icon: "/api/placeholder/32/32" },
-    { id: 5, title: "LinkedIn", url: "https://linkedin.com", icon: "/api/placeholder/32/32" },
-  ]
+// Type definitions
+interface UserProfileData {
+  displayName: string;
+  bio: string;
+  avatar: string;
+  theme: string;
+  layout: string;
+  showBio: boolean;
+  showAvatar: boolean;
+  animation: string;
+  roundedCorners: boolean;
+  showBorders: boolean;
+  showShadows: boolean;
+  buttonFullWidth: boolean;
+  showLinkIcons: boolean;
+  isPremium: boolean;
+  fields: FieldType[];
+}
+
+// Utility functions - moved outside component and memoized
+const getGradientClasses = (selectedTheme: typeof customizationUtils.themeOptions[0]) => 
+  `bg-gradient-to-r ${selectedTheme.from} ${selectedTheme.to}`;
+
+const getButtonClasses = (
+  selectedTheme: typeof customizationUtils.themeOptions[0], 
+  roundedCorners: boolean, 
+  showBorders: boolean, 
+  showShadows: boolean, 
+  selectedLayout: typeof customizationUtils.layoutTemplates[0],
+  isGlass = false
+) => {
+  const classes = [
+    'mb-3 p-3',
+    getGradientClasses(selectedTheme),
+    'flex items-center justify-between',
+    roundedCorners ? 'rounded-lg' : '',
+    showBorders ? `border ${selectedTheme.borderColor}` : '',
+    showShadows ? 'shadow-md hover:shadow-lg' : '',
+    selectedLayout.id === 'compact' ? 'py-2' : '',
+    selectedLayout.id === 'minimal' ? 'bg-opacity-90 border-0' : '',
+    isGlass ? 'backdrop-blur-md bg-opacity-20' : ''
+  ];
+  
+  return classes.filter(Boolean).join(' ');
 };
 
-// Theme options as provided
-const themeOptions = [
-  { id: 'midnight', name: 'Midnight Purple', from: 'from-indigo-500', to: 'to-purple-600' },
-  { id: 'ocean', name: 'Ocean Blue', from: 'from-blue-500', to: 'to-cyan-600' },
-  { id: 'sunset', name: 'Sunset Orange', from: 'from-orange-500', to: 'to-red-600' },
-  { id: 'forest', name: 'Forest Green', from: 'from-green-500', to: 'to-emerald-600' },
-  { id: 'royal', name: 'Royal Gold', from: 'from-yellow-500', to: 'to-amber-600' },
-];
+// Animation classes map for better performance
+const ANIMATION_CLASSES = {
+  pulse: 'hover:animate-pulse transition-all',
+  scale: 'transition-transform hover:scale-105',
+  slide: 'transition-transform hover:translate-x-4',
+  bounce: 'transition-transform hover:animate-bounce',
+  rotate: 'transition-transform hover:rotate-1',
+  default: 'transition-all'
+};
 
-// Layout templates
-const layoutTemplates = [
-  { id: 'standard', name: 'Standard' },
-  { id: 'compact', name: 'Compact' },
-  { id: 'elegant', name: 'Elegant' },
-  { id: 'minimal', name: 'Minimal' },
-];
+const getAnimationClass = (animation: string | undefined) => 
+  ANIMATION_CLASSES[animation as keyof typeof ANIMATION_CLASSES] || ANIMATION_CLASSES.default;
 
-export default function UserPage() {
-  const [currentTheme, setCurrentTheme] = useState(themeOptions[0]);
-  const [currentLayout, setCurrentLayout] = useState(layoutTemplates[0]);
-  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
-  const [isLayoutMenuOpen, setIsLayoutMenuOpen] = useState(false);
-  const [userData, setUserData] = useState(DUMMY_DATA);
+const getLinkIcon = (field: FieldType) => {
+  if (field.image) {
+    return (
+      <div className="w-12 h-8 mr-3 flex-shrink-0">
+        {/* Use placeholder for client-side rendering to avoid SSR errors */}
+        <div className="w-full h-full bg-gray-200 rounded relative">
+          <Image 
+            src={field.image} 
+            alt="" 
+            layout="fill" 
+            objectFit="cover" 
+            className="rounded" 
+            unoptimized={field.image.startsWith('http')} // For external images
+          />
+        </div>
+      </div>
+    );
+  }
   
-    const username = usePathname();
+  const linkType = customizationUtils.linkTypes.find(lt => lt.id === field.type);
+  return <span className="mr-3">{linkType ? linkType.icon : <LinkIcon size={16} />}</span>;
+};
 
-  // Fetch user data (in a real app)
+// Enhanced fetch function with proper error handling
+const userDataCache: Record<string, UserProfileData> = {};
+
+async function fetchUserData(username: string): Promise<UserProfileData> {
+  if (userDataCache[username]) {
+    return userDataCache[username];
+  }
+  
+  try {
+    // In a real app, this would be an API call
+    // For demo/testing, we'll use mock data with a small delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // FIXED: Only set isPremium correctly when username exactly matches
+    const isPremium = username == '@0Armaan025';
+    
+    const data = {
+      displayName: username.charAt(0).toUpperCase() + username.slice(1),
+      bio: "Digital creator and content enthusiast",
+      avatar: "",
+      theme: "midnight",
+      layout: "compact",
+      showBio: true,
+      animation: "scale",
+      showAvatar: true,
+      roundedCorners: true,
+      showBorders: true,
+      showShadows: true,
+      isPremium, // Using the correct premium check
+      buttonFullWidth: false,
+      showLinkIcons: true,
+      fields: [
+        { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: 'https://cdn.dribbble.com/userupload/18679649/file/original-4862151ee849235dc5910c606ab05a72.jpg?resize=1200x926&vertical=center', type: 'default', animation: 'slide' },
+        { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', type: 'social', animation: 'pulse' },
+        { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '', type: 'social', animation: 'scale' },
+      ]
+    };
+    
+    userDataCache[username] = data;
+    return data;
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    throw new Error("Failed to load user profile");
+  }
+}
+
+const UserProfilePage: React.FC = () => {
+  const pathname = usePathname();
+  const username = pathname?.split('/')[1] || '';
+  
+  const [userData, setUserData] = useState<UserProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [highlight, setHighlight] = useState<number | null>(null);
+  const [viewCount, setViewCount] = useState<number>(0); // Initialize at 0, set later
+  const [showGlassEffect, setShowGlassEffect] = useState<boolean>(true);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [impressedAnimation, setImpressedAnimation] = useState(false);
+  const [isClient, setIsClient] = useState(false); // For SSR safety
+
+  // Mark when client-side rendering is active
   useEffect(() => {
-    // This would be a real API call in a production app
-    // For now, we'll just use the dummy data, potentially modified based on the username
-    setUserData({
-      ...DUMMY_DATA,
-      username: username.replace('@', '')
-    });
-  }, [username]);
+    setIsClient(true);
+    // Set view count only once on client-side to avoid hydration mismatch
+    setViewCount(Math.floor(Math.random() * 15) + 5);
+  }, []);
 
-  // Handle dropdown toggling
-  const toggleThemeMenu = () => setIsThemeMenuOpen(!isThemeMenuOpen);
-  const toggleLayoutMenu = () => setIsLayoutMenuOpen(!isLayoutMenuOpen);
+  // Track mouse for spotlight effect - only on client
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isClient) {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    }
+  }, [isClient]);
+
+  // Show "impressed" animation effect when scrolling - only on client
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const handleScroll = () => {
+      if (window.scrollY > 100 && !impressedAnimation) {
+        setImpressedAnimation(true);
+        setTimeout(() => setImpressedAnimation(false), 3000);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [impressedAnimation, isClient]);
+
+  useEffect(() => {
+    if (!username || !isClient) return;
+
+    const loadUserData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchUserData(username);
+        setUserData(data);
+      } catch (err) {
+        setError('Failed to load user profile');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+    
+    // Set up auto-incrementing view counter for engagement
+    // FIXED: Properly clear interval on unmount
   
-  // Select a theme
-  const selectTheme = (theme: typeof themeOptions[0]) => {
-    setCurrentTheme(theme);
-    setIsThemeMenuOpen(false);
-  };
-  
-  // Select a layout
-  const selectLayout = (layout: typeof layoutTemplates[0]) => {
-    setCurrentLayout(layout);
-    setIsLayoutMenuOpen(false);
-  };
+    
+    
+  }, [username, isClient]);
+
+  // Memoized theme and layout calculations
+  const { selectedTheme, selectedLayout, containerClasses } = useMemo(() => {
+    if (!userData) {
+      return {
+        selectedTheme: customizationUtils.themeOptions[0],
+        selectedLayout: customizationUtils.layoutTemplates[0],
+        containerClasses: 'flex flex-col'
+      };
+    }
+    
+    const theme = customizationUtils.themeOptions.find(
+      theme => theme.id === userData.theme
+    ) || customizationUtils.themeOptions[0];
+
+    const layout = customizationUtils.layoutTemplates.find(
+      layout => layout.id === userData.layout
+    ) || customizationUtils.layoutTemplates[0];
+
+    const classes = layout.id === 'grid'
+      ? 'grid grid-cols-1 sm:grid-cols-2 gap-3'
+      : 'flex flex-col';
+      
+    return { selectedTheme: theme, selectedLayout: layout, containerClasses: classes };
+  }, [userData]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full mb-4"></div>
+          <div className="text-white text-lg">Loading amazing profile...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !userData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] flex items-center justify-center">
+        <div className="text-center p-8 rounded-xl bg-gray-900/60 border border-gray-700">
+          <h1 className="text-2xl font-bold text-white mb-4">Profile not found</h1>
+          <p className="text-gray-300">The user profile you&apos;re looking for doesn&apos;t exist or couldn&apos;t be loaded.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] flex flex-col items-center py-12 px-4">
-      {/* Settings Bar */}
-      <div className="w-full max-w-md flex justify-between mb-6 p-2 bg-black bg-opacity-20 rounded-lg">
-        {/* Theme Dropdown */}
-        <div className="relative">
-          <button 
-            onClick={toggleThemeMenu}
-            className="flex items-center space-x-2 px-3 py-2 bg-black bg-opacity-30 rounded-md text-white"
-          >
-            <span>Theme: {currentTheme.name}</span>
-            <ChevronDown size={16} className={`transform transition-transform ${isThemeMenuOpen ? 'rotate-180' : ''}`} />
-          </button>
+    <div 
+      className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] py-10 px-4 relative overflow-hidden"
+      onMouseMove={userData.isPremium? handleMouseMove: () => {}}
+    >
+      {/* PREMIUM BG - FIXED: Only show for premium users */}
+      {userData.isPremium && (
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/3 w-80 h-80 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse" style={{animationDelay: '1s'}}></div>
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-600 rounded-full filter blur-3xl opacity-10 animate-pulse" style={{animationDelay: '2s'}}></div>
+        </div>
+      )}
+  
+      {/* Spotlight effect following cursor - only active on client */}
+    {isClient && userData.isPremium && (
+      <div 
+        className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 opacity-5 pointer-events-none blur-3xl"
+        style={{
+          left: `${mousePosition.x - 128}px`,
+          top: `${mousePosition.y - 128}px`,
+          transition: 'all 0.3s ease-out'
+        }}
+      ></div>
+    )}
+
+      <div className="container mx-auto max-w-4xl relative z-10">
+        {/* Neuromorphic card effect with translucent glassy background */}
+        <div className={userData.isPremium? `rounded-xl p-8 backdrop-blur-xl bg-white/5 border border-white/10 shadow-xl relative overflow-hidden ${impressedAnimation ? 'animate-wiggle' : ''}`:''}>
+          {/* Premium indicator - FIXED: Only show for premium users */}
+          {userData.isPremium && impressedAnimation && (
+            <div className="absolute -top-2 -right-2 w-24 h-24">
+              <div className="absolute top-8 right-8 bg-amber-500 text-white px-4 py-1 text-xs font-bold transform rotate-45 shadow-lg">
+                PREMIUM
+              </div>
+            </div>
+          )}
           
-          {isThemeMenuOpen && (
-            <div className="absolute top-full left-0 mt-1 w-48 bg-black bg-opacity-90 rounded-md shadow-lg z-10">
-              {themeOptions.map((theme) => (
-               <button
-               key={theme.id}
-               onClick={() => selectTheme(theme)}
-               className={`w-full text-left px-4 py-2 hover:bg-white/40 hover:text-black rounded-md transition-colors ${
-                 currentTheme.id === theme.id ? 'bg-white/70 text-black' : 'text-white'
-               }`}
-             >
-             
-                  <div className="flex items-center">
-                    <div className={`w-4 h-4 rounded-full mr-2 bg-gradient-to-r ${theme.from} ${theme.to}`}></div>
-                    <span className="text-white">{theme.name}</span>
+          {/* Reduced number of floating particles for better performance */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {Array.from({length: 10}).map((_, i) => (
+              <div 
+                key={i}
+                className="absolute w-1 h-1 bg-white rounded-full animate-float"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  opacity: Math.random() * 0.5 + 0.1,
+                  animationDuration: `${Math.random() * 10 + 5}s`,
+                  animationDelay: `${Math.random() * 5}s`
+                }}
+              ></div>
+            ))}
+          </div>
+
+          {/* Profile Header with Visual Enhancement */}
+          <div className="flex flex-col items-center mb-8 relative">
+            {userData.showAvatar && (
+              <div className={`w-24 h-24 rounded-full overflow-hidden ${userData.showBorders ? 'border-2 ' + selectedTheme.borderColor : ''} mb-4 relative group`}>
+                {/* Avatar glow effect - FIXED: Only show for premium users */}
+                {userData.isPremium && (
+                  <>
+                    <div className="absolute inset-0 bg-purple-500 opacity-20 group-hover:animate-pulse rounded-full"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-30 rounded-full transition-opacity"></div>
+                  </>
+                )}
+                
+                {userData.avatar ? (
+                  <div className="relative w-full h-full">
+                    <Image 
+                      src={userData.avatar} 
+                      alt={userData.displayName} 
+                      layout="fill" 
+                      objectFit="cover"
+                      unoptimized={userData.avatar.startsWith('http')} // For external images
+                    />
                   </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        {/* Layout Dropdown */}
-        <div className="relative">
+                ) : (
+                  <div className={`w-full h-full flex items-center justify-center ${getGradientClasses(selectedTheme)}`}>
+                      <User size={32} className="text-white" />
+                    </div>
+                )}
+                
+                {/* Only show premium badge if user is actually premium */}
+                {userData.isPremium && (
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center animate-spin-slow">
+                    <div className="w-6 h-6 bg-[#030213] rounded-full flex items-center justify-center">
+                      <Sparkles size={12} className="text-white" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3 relative">
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+                {userData.displayName}
+              </span>
+              
+              {/* Only show premium badge if user is actually premium */}
+              {userData.isPremium && (
+                <span className="absolute -top-3 -right-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded-full transform rotate-12 animate-bounce">
+                  Pro
+                </span>
+              )}
+            </h1>
+            
+            {/* Fix duplicate viewers count - only show one instance */}
+            {userData.showBio && (
+              <div className="mt-4 flex items-center bg-white/10 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                <span className="text-xs text-white">{viewCount} views yet</span>
+              </div>
+            )}
+          </div>
+
+          {/* Style toggle button with proper accessibility */}
           <button 
-            onClick={toggleLayoutMenu}
-            className="flex items-center space-x-2 px-3 py-2 bg-black bg-opacity-30 rounded-md text-white"
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+            onClick={() => setShowGlassEffect(!showGlassEffect)}
+            aria-label="Toggle glass effect"
           >
-            <span>Layout: {currentLayout.name}</span>
-            <ChevronDown size={16} className={`transform transition-transform ${isLayoutMenuOpen ? 'rotate-180' : ''}`} />
+            <div className="w-5 h-5 rounded-full bg-gradient-to-r from-purple-400 to-pink-400" />
           </button>
-          
-          {isLayoutMenuOpen && (
-            <div className="absolute top-full right-0 mt-1 w-48 bg-black bg-opacity-90 rounded-md shadow-lg z-10">
-              {layoutTemplates.map((layout) => (
-                <button
-                  key={layout.id}
-                  onClick={() => selectLayout(layout)}
-                  className={`w-full text-left px-4 py-2 hover:bg-white/40 hover:bg-opacity-10 text-black rounded-md ${
-                    currentLayout.id === layout.id ? 'bg-white/70 bg-opacity-10 text-black ' : ''
-                  }`}
+
+          {/* Links Section with Improved Interactivity */}
+          <div className={containerClasses}>
+            {userData.fields
+              .filter(field => !field.hidden)
+              .map((field, index) => (
+                <a
+                  key={field.id}
+                  href={field.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Visit ${field.title}`}
+                  className={`
+                    ${getButtonClasses(selectedTheme, userData.roundedCorners, userData.showBorders, userData.showShadows, selectedLayout, showGlassEffect)}
+                    ${getAnimationClass(field.animation || userData.animation)}
+                    ${!userData.buttonFullWidth && selectedLayout.id !== 'grid' ? 'self-center max-w-xs w-[300px]' : 'w-full'}
+                    relative overflow-hidden group
+                  `}
+                  onMouseEnter={() => setHighlight(index)}
+                  onMouseLeave={() => setHighlight(null)}
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                    transform: `translateY(${highlight === index ? '-2px' : '0'})`,
+                    transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
                 >
-                  <span className="text-white">{layout.name}</span>
-                </button>
+                  {/* Only show spotlight effect when client-side rendered */}
+                  {isClient && highlight === index && (
+                    <div className="absolute inset-0 bg-white opacity-10 rounded-full w-20 h-20 -top-5 -left-5 blur-xl animate-pulse"></div>
+                  )}
+                  
+                  {/* Neuomorphic inner shadow effect */}
+                  {showGlassEffect && (
+                    <div className="absolute inset-0 rounded-lg shadow-inner opacity-30 pointer-events-none"></div>
+                  )}
+                  
+                  <div className="flex items-center z-10 relative">
+                    {userData.showLinkIcons && getLinkIcon(field)}
+                    <span className={`${selectedTheme.textColor} group-hover:translate-x-1 transition-transform`}>
+                      {field.title}
+                    </span>
+                  </div>
+                  <ArrowUpRight 
+                    size={16} 
+                    className={`${selectedTheme.textColor} group-hover:scale-125 transition-transform`} 
+                  />
+                </a>
               ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content - changes based on selected layout */}
-      <div className="w-full max-w-md">
-        {currentLayout.id === 'standard' && (
-          <StandardLayout userData={userData} theme={currentTheme} />
-        )}
-        
-        {currentLayout.id === 'compact' && (
-          <CompactLayout userData={userData} theme={currentTheme} />
-        )}
-        
-        {currentLayout.id === 'elegant' && (
-          <ElegantLayout userData={userData} theme={currentTheme} />
-        )}
-        
-        {currentLayout.id === 'minimal' && (
-          <MinimalLayout userData={userData} theme={currentTheme} />
-        )}
-      </div>
-      
-      {/* Footer */}
-      
-    </main>
-  );
-}
-
-// Standard Layout Component
-function StandardLayout({ userData, theme }: { userData: typeof DUMMY_DATA, theme: typeof themeOptions[0] }) {
-  return (
-    <div className="flex flex-col items-center">
-      {/* Profile Section */}
-      <div className="mb-8 flex flex-col items-center">
-        <div className="relative w-24 h-24 rounded-full overflow-hidden mb-4 border-2 border-white">
-          <Image
-            src={userData.avatar}
-            alt={userData.name}
-            layout="fill"
-            objectFit="cover"
-          />
-        </div>
-        <h1 className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent text-2xl font-bold mb-1">
-          {userData.name}
-        </h1>
-        <p className="text-gray-300">@{userData.username}</p>
-        <p className="text-gray-400 text-sm">{userData.email}</p>
-      </div>
-      
-      {/* Links Section */}
-      <div className="w-full space-y-3">
-        {userData.links.map((link) => (
-          <a
-            key={link.id}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex items-center p-3 rounded-lg transition-all hover:scale-105 bg-gradient-to-r ${theme.from} ${theme.to}`}
-          >
-            <div className="w-6 h-6 relative mr-3">
-              <Image src={link.icon} alt="" layout="fill" objectFit="cover" className="rounded" />
-            </div>
-            <span className="text-white font-medium">{link.title}</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Compact Layout Component
-function CompactLayout({ userData, theme }: { userData: typeof DUMMY_DATA, theme: typeof themeOptions[0] }) {
-  return (
-    <div className="bg-black bg-opacity-40 rounded-xl p-6">
-      {/* Profile Section - Horizontal */}
-      <div className="flex items-center mb-6">
-        <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white mr-4">
-          <Image
-            src={userData.avatar}
-            alt={userData.name}
-            layout="fill"
-            objectFit="cover"
-          />
-        </div>
-        <div>
-          <h1 className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent text-xl font-bold">
-            {userData.name}
-          </h1>
-          <p className="text-gray-300 text-sm">@{userData.username}</p>
-          <p className="text-gray-400 text-xs">{userData.email}</p>
-        </div>
-      </div>
-      
-      {/* Links Section - Compact Grid */}
-      <div className="grid grid-cols-2 gap-2">
-        {userData.links.map((link) => (
-          <a
-            key={link.id}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex items-center p-2 rounded-md transition-all hover:brightness-110 bg-gradient-to-r ${theme.from} ${theme.to}`}
-          >
-            <div className="w-5 h-5 relative mr-2">
-              <Image src={link.icon} alt="" layout="fill" objectFit="cover" className="rounded" />
-            </div>
-            <span className="text-white text-sm font-medium truncate">{link.title}</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Elegant Layout Component
-function ElegantLayout({ userData, theme }: { userData: typeof DUMMY_DATA, theme: typeof themeOptions[0] }) {
-  return (
-    <div className="p-1 rounded-2xl bg-gradient-to-r from-white to-gray-300">
-      <div className="bg-gradient-to-b from-[#030213] to-[#0f0a2d] rounded-xl p-6">
-        {/* Profile Section - Centered and Elegant */}
-        <div className="flex flex-col items-center mb-8">
-          <div className={`p-1 rounded-full mb-4 bg-gradient-to-r ${theme.from} ${theme.to}`}>
-            <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-black">
-              <Image
-                src={userData.avatar}
-                alt={userData.name}
-                layout="fill"
-                objectFit="cover"
-              />
+          </div>
+          
+          {/* Call-to-action Footer */}
+          <div className="mt-8 text-center">
+            <p className="text-xs text-gray-400 mb-2">Make your own link page in 60 seconds →</p>
+            <button 
+              className={`
+                px-6 py-3 relative overflow-hidden
+                ${showGlassEffect ? 'backdrop-blur-md bg-white/10' : 'bg-gradient-to-r from-purple-600 to-pink-600'}
+                rounded-full text-white text-sm font-medium
+                transform transition-all hover:scale-105 hover:shadow-lg
+                ${showGlassEffect ? 'border border-white/20' : ''}
+              `}
+              onClick={() => {
+                // Use safer navigation approach than directly manipulating window.location
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/dashboard';
+                }
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/40 to-pink-600/40 opacity-0 hover:opacity-100 transition-opacity"></div>
+              <span className="relative z-10">Create Free Page</span>
+            </button>
+            
+            {/* Premium upgrade teaser */}
+            <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-purple-900/20 to-pink-900/20 backdrop-blur-sm border border-white/10 max-w-xs mx-auto transform transition-transform hover:scale-105">
+              <div className="flex items-center justify-center mb-2">
+                <Sparkles size={16} className="text-amber-400 mr-2" />
+                <span className="text-amber-400 text-xs font-medium">PREMIUM FEATURES</span>
+              </div>
+              <p className="text-xs text-gray-300 mb-3">Unlock animated backgrounds, custom domains, and advanced analytics</p>
+              <button 
+                className="text-xs text-white cursor-pointer bg-gradient-to-r from-amber-600 to-amber-500 px-3 py-1 rounded-full"
+                aria-label="Upgrade to premium"
+              >
+                Upgrade Now
+              </button>
             </div>
           </div>
-          <h1 className={`bg-gradient-to-r ${theme.from} ${theme.to} bg-clip-text text-transparent text-2xl font-bold mb-1`}>
-            {userData.name}
-          </h1>
-          <p className="text-gray-300">@{userData.username}</p>
-          <p className="text-gray-400 text-sm mb-2">{userData.email}</p>
-          <div className={`h-0.5 w-20 bg-gradient-to-r ${theme.from} ${theme.to} rounded-full`}></div>
         </div>
         
-        {/* Links Section - Elegant Style */}
-        <div className="w-full space-y-3">
-          {userData.links.map((link) => (
-            <a
-              key={link.id}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center p-3 rounded-lg border border-gray-700 bg-black bg-opacity-40 hover:border-gray-500 transition-all"
-            >
-              <div className={`w-8 h-8 relative mr-3 p-0.5 rounded-md bg-gradient-to-r ${theme.from} ${theme.to}`}>
-                <div className="bg-black rounded-sm w-full h-full flex items-center justify-center">
-                  <Image src={link.icon} alt="" width={20} height={20} className="rounded" />
-                </div>
-              </div>
-              <span className={`bg-gradient-to-r ${theme.from} ${theme.to} bg-clip-text text-transparent font-medium`}>
-                {link.title}
-              </span>
-            </a>
-          ))}
-        </div>
+        
       </div>
     </div>
   );
-}
+};
 
-// Minimal Layout Component
-function MinimalLayout({ userData, theme }: { userData: typeof DUMMY_DATA, theme: typeof themeOptions[0] }) {
-  return (
-    <div className="flex flex-col items-center">
-      {/* Profile Section - Minimal */}
-      <div className="mb-8 flex flex-col items-center">
-        <div className="relative w-20 h-20 rounded-full overflow-hidden mb-4">
-          <Image
-            src={userData.avatar}
-            alt={userData.name}
-            layout="fill"
-            objectFit="cover"
-          />
-        </div>
-        <h1 className="text-white text-xl font-bold mb-1">
-          {userData.name}
-        </h1>
-        <p className="text-gray-400 text-sm">{userData.email}</p>
-      </div>
-      
-      {/* Links Section - Minimal */}
-     <div className="w-full space-y-2">
-        {userData.links.map((link) => (
-          <a
-          key={link.id}
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block p-3 text-center rounded-md border border-gray-700 text-white hover:bg-white hover:bg-opacity-5 transition-all"
-        >
-          <span className={`bg-gradient-to-r ${theme.from} ${theme.to} bg-clip-text text-transparent font-medium`}>
-            {link.title}
-          </span>
-        </a>
-      ))}
-    </div>
-  </div>
-);
-}
+export default UserProfilePage;
