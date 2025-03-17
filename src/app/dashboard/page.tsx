@@ -583,7 +583,7 @@ const [fields, setFields] = useState<FieldType[]>([
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               {/* Time range selector */}
-              <div className="flex items-center justify-between bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+              {/* <div className="flex items-center justify-between bg-gray-900/50 p-4 rounded-xl border border-gray-800">
                 <h3 className="font-medium">Time Range</h3>
                 <div className="flex space-x-2">
                   {['day', 'week', 'month', 'year'].map((range) => (
@@ -596,7 +596,7 @@ const [fields, setFields] = useState<FieldType[]>([
                     </button>
                   ))}
                 </div>
-              </div>
+              </div> */}
 
               {/* Stats Overview */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -642,19 +642,7 @@ const [fields, setFields] = useState<FieldType[]>([
                   </div>
                 </div>
                 
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-400">Conversion Rate</h3>
-                    <div className="p-2 bg-amber-500/20 rounded-lg">
-                      <BarChart3 size={20} className="text-amber-400" />
-                    </div>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">3.27%</p>
-                  <div className="flex items-center mt-2 text-red-500">
-                    <ArrowUpRight size={16} className="transform rotate-90" />
-                    <span className="text-sm ml-1">2.1% decrease</span>
-                  </div>
-                </div>
+               
               </div>
 
               {/* Visitor Chart */}

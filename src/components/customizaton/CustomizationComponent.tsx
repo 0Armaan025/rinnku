@@ -604,7 +604,7 @@ export default function CustomizationComponent(props: Props) {
                 <div className="container mx-auto px-4 py-6">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold">Link Builder</h1>
+                    <h1 className="text-2xl font-bold">Rinkuu</h1>
                     <div className="flex items-center">
                       {modified && !savedMessage && (
                         <span className="text-xs text-yellow-400 mr-3">Unsaved changes</span>
@@ -614,7 +614,10 @@ export default function CustomizationComponent(props: Props) {
                       )}
                       <button
                         className="flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg mr-2"
-                        onClick={() => setPreviewMode(!previewMode)}
+                        onClick={() => {
+                          setPreviewMode(!previewMode);
+                          saveChanges(setSavedMessage , setModified);
+                        }}
                       >
                         <Eye size={16} className="mr-2" />
                         {previewMode ? 'Edit' : 'Preview'}
@@ -623,7 +626,7 @@ export default function CustomizationComponent(props: Props) {
                         <button
                           className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
                           onClick={() => {
-                            saveChanges(setSavedMessage , setSavedMessage);
+                            saveChanges(setSavedMessage , setModified);
                           }}
                           disabled={!modified}
                         >
@@ -692,7 +695,7 @@ export default function CustomizationComponent(props: Props) {
                   <div className="container mx-auto px-4 py-6">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
-                      <h1 className="text-2xl font-bold">Link Builder</h1>
+                      <h1 className="text-2xl font-bold">Rinkuu</h1>
                       <div className="flex items-center">
                         {modified && !savedMessage && (
                           <span className="text-xs text-yellow-400 mr-3">Unsaved changes</span>
@@ -711,7 +714,7 @@ export default function CustomizationComponent(props: Props) {
                           <button
                             className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
                             onClick={() => {
-                              saveChanges(setSavedMessage , setSavedMessage);
+                              saveChanges(setSavedMessage , setModified);
                             }}
                             disabled={!modified}
                           >
