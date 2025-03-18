@@ -316,19 +316,7 @@ const AnalyticsComponent: React.FC<AnalyticsComponentProps> = ({ analyticsData, 
           </div>
         </div>
         
-        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-gray-400">Conversion Rate</h3>
-            <div className="p-2 bg-pink-500/20 rounded-lg">
-              <BarChart3 size={20} className="text-pink-400" />
-            </div>
-          </div>
-          <p className="text-2xl md:text-3xl font-bold">5.8%</p>
-          <div className="flex items-center mt-2 text-green-500">
-            <ArrowUpRight size={16} />
-            <span className="text-sm ml-1">2.1% increase</span>
-          </div>
-        </div>
+       
       </div>
 
       {/* Visitor Chart */}

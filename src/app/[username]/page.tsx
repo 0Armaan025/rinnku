@@ -75,15 +75,13 @@ const getLinkIcon = (field: FieldType) => {
   if (field.image) {
     return (
       <div className="w-12 h-8 mr-3 flex-shrink-0">
-        {/* Use placeholder for client-side rendering to avoid SSR errors */}
         <div className="w-full h-full bg-gray-200 rounded relative">
           <Image 
             src={field.image} 
             alt="" 
-            layout="fill" 
-            objectFit="cover" 
-            className="rounded" 
-            unoptimized={field.image.startsWith('http')} // For external images
+            fill
+            className="rounded object-cover" 
+            unoptimized={field.image.startsWith('http')}
           />
         </div>
       </div>
@@ -98,8 +96,11 @@ const getLinkIcon = (field: FieldType) => {
 const userDataCache: Record<string, UserProfileData> = {};
 
 async function fetchUserData(username: string): Promise<UserProfileData> {
-  if (userDataCache[username]) {
-    return userDataCache[username];
+  // Remove @ from username if present
+  const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
+  
+  if (userDataCache[cleanUsername]) {
+    return userDataCache[cleanUsername];
   }
   
   try {
@@ -107,24 +108,24 @@ async function fetchUserData(username: string): Promise<UserProfileData> {
     // For demo/testing, we'll use mock data with a small delay
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // FIXED: Only set isPremium correctly when username exactly matches
-    const isPremium = username == '@0Armaan025';
+    // Check if the username is exactly '0Armaan025'
+    const isPremium = cleanUsername === '0Armaan025';
     
     const data = {
-      displayName: username.charAt(0).toUpperCase() + username.slice(1),
+      displayName: cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1),
       bio: "Digital creator and content enthusiast",
       avatar: "",
-      theme: "midnight",
+      theme: "rose",
       layout: "compact",
-      showBio: true,
-      animation: "scale",
+      showBio: false,
+      animation: "bounce",
       showAvatar: true,
       roundedCorners: true,
       showBorders: true,
-      showShadows: true,
-      isPremium, // Using the correct premium check
+      showShadows: false,
+      isPremium,
       buttonFullWidth: false,
-      showLinkIcons: true,
+      showLinkIcons: false,
       fields: [
         { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: 'https://cdn.dribbble.com/userupload/18679649/file/original-4862151ee849235dc5910c606ab05a72.jpg?resize=1200x926&vertical=center', type: 'default', animation: 'slide' },
         { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', type: 'social', animation: 'pulse' },
@@ -132,7 +133,7 @@ async function fetchUserData(username: string): Promise<UserProfileData> {
       ]
     };
     
-    userDataCache[username] = data;
+    userDataCache[cleanUsername] = data;
     return data;
   } catch (error) {
     console.error("Error fetching user data:", error);
@@ -142,23 +143,33 @@ async function fetchUserData(username: string): Promise<UserProfileData> {
 
 const UserProfilePage: React.FC = () => {
   const pathname = usePathname();
-  const username = pathname?.split('/')[1] || '';
+  // Extract username from path - must be in format /@username
+  const username = pathname?.includes('@') ? pathname?.split('@')[1] || '' : '';
   
   const [userData, setUserData] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<number | null>(null);
-  const [viewCount, setViewCount] = useState<number>(0); // Initialize at 0, set later
+  const [viewCount, setViewCount] = useState<number>(0);
   const [showGlassEffect, setShowGlassEffect] = useState<boolean>(true);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [impressedAnimation, setImpressedAnimation] = useState(false);
-  const [isClient, setIsClient] = useState(false); // For SSR safety
+  const [isClient, setIsClient] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [cursorType, setCursorType] = useState<'default' | 'hover'>('default');
 
   // Mark when client-side rendering is active
   useEffect(() => {
     setIsClient(true);
-    // Set view count only once on client-side to avoid hydration mismatch
     setViewCount(Math.floor(Math.random() * 15) + 5);
+    
+    // Add event listener for custom cursor
+    const handleMouseMove = (e: MouseEvent) => {
+      setCursorPosition({ x: e.clientX, y: e.clientY });
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   // Track mouse for spotlight effect - only on client
@@ -200,12 +211,6 @@ const UserProfilePage: React.FC = () => {
     };
 
     loadUserData();
-    
-    // Set up auto-incrementing view counter for engagement
-    // FIXED: Properly clear interval on unmount
-  
-    
-    
   }, [username, isClient]);
 
   // Memoized theme and layout calculations
@@ -233,6 +238,15 @@ const UserProfilePage: React.FC = () => {
     return { selectedTheme: theme, selectedLayout: layout, containerClasses: classes };
   }, [userData]);
 
+  // Handle mouse enter/leave for interactive elements
+  const handleMouseEnter = useCallback(() => {
+    setCursorType('hover');
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setCursorType('default');
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] flex items-center justify-center">
@@ -257,10 +271,35 @@ const UserProfilePage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] py-10 px-4 relative overflow-hidden"
-      onMouseMove={userData.isPremium? handleMouseMove: () => {}}
+      className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] py-10 px-4 relative overflow-hidden cursor-none"
+      onMouseMove={userData.isPremium ? handleMouseMove : undefined}
     >
-      {/* PREMIUM BG - FIXED: Only show for premium users */}
+      {/* Custom cursor */}
+      {isClient && (
+        <>
+          <div 
+            className="fixed w-6 h-6 rounded-full pointer-events-none z-50 mix-blend-difference"
+            style={{
+              left: `${cursorPosition.x}px`,
+              top: `${cursorPosition.y}px`,
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: cursorType === 'hover' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.2)',
+              transition: 'width 0.2s, height 0.2s, background-color 0.3s'
+            }}
+          />
+          <div 
+            className="fixed w-2 h-2 bg-white rounded-full pointer-events-none z-50"
+            style={{
+              left: `${cursorPosition.x}px`,
+              top: `${cursorPosition.y}px`,
+              transform: 'translate(-50%, -50%)',
+              transition: 'left 0.05s, top 0.05s'
+            }}
+          />
+        </>
+      )}
+
+      {/* PREMIUM BG - Only show for premium users */}
       {userData.isPremium && (
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/3 w-80 h-80 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
@@ -270,21 +309,21 @@ const UserProfilePage: React.FC = () => {
       )}
   
       {/* Spotlight effect following cursor - only active on client */}
-    {isClient && userData.isPremium && (
-      <div 
-        className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 opacity-5 pointer-events-none blur-3xl"
-        style={{
-          left: `${mousePosition.x - 128}px`,
-          top: `${mousePosition.y - 128}px`,
-          transition: 'all 0.3s ease-out'
-        }}
-      ></div>
-    )}
+      {isClient && userData.isPremium && (
+        <div 
+          className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 opacity-5 pointer-events-none blur-3xl"
+          style={{
+            left: `${mousePosition.x - 128}px`,
+            top: `${mousePosition.y - 128}px`,
+            transition: 'all 0.3s ease-out'
+          }}
+        ></div>
+      )}
 
       <div className="container mx-auto max-w-4xl relative z-10">
         {/* Neuromorphic card effect with translucent glassy background */}
-        <div className={userData.isPremium? `rounded-xl p-8 backdrop-blur-xl bg-white/5 border border-white/10 shadow-xl relative overflow-hidden ${impressedAnimation ? 'animate-wiggle' : ''}`:''}>
-          {/* Premium indicator - FIXED: Only show for premium users */}
+        <div className={userData.isPremium ? `rounded-xl p-8 backdrop-blur-xl bg-white/5 border border-white/10 shadow-xl relative overflow-hidden ${impressedAnimation ? 'animate-wiggle' : ''}` : ''}>
+          {/* Premium indicator - Only show for premium users */}
           {userData.isPremium && impressedAnimation && (
             <div className="absolute -top-2 -right-2 w-24 h-24">
               <div className="absolute top-8 right-8 bg-amber-500 text-white px-4 py-1 text-xs font-bold transform rotate-45 shadow-lg">
@@ -293,7 +332,7 @@ const UserProfilePage: React.FC = () => {
             </div>
           )}
           
-          {/* Reduced number of floating particles for better performance */}
+          {/* Floating particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {Array.from({length: 10}).map((_, i) => (
               <div 
@@ -310,11 +349,14 @@ const UserProfilePage: React.FC = () => {
             ))}
           </div>
 
-          {/* Profile Header with Visual Enhancement */}
+          {/* Profile Header */}
           <div className="flex flex-col items-center mb-8 relative">
             {userData.showAvatar && (
-              <div className={`w-24 h-24 rounded-full overflow-hidden ${userData.showBorders ? 'border-2 ' + selectedTheme.borderColor : ''} mb-4 relative group`}>
-                {/* Avatar glow effect - FIXED: Only show for premium users */}
+              <div className={`w-24 h-24 rounded-full overflow-hidden ${userData.showBorders ? 'border-2 ' + selectedTheme.borderColor : ''} mb-4 relative group`}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Avatar glow effect - Only for premium users */}
                 {userData.isPremium && (
                   <>
                     <div className="absolute inset-0 bg-purple-500 opacity-20 group-hover:animate-pulse rounded-full"></div>
@@ -327,18 +369,18 @@ const UserProfilePage: React.FC = () => {
                     <Image 
                       src={userData.avatar} 
                       alt={userData.displayName} 
-                      layout="fill" 
-                      objectFit="cover"
-                      unoptimized={userData.avatar.startsWith('http')} // For external images
+                      fill
+                      className="object-cover"
+                      unoptimized={userData.avatar.startsWith('http')}
                     />
                   </div>
                 ) : (
                   <div className={`w-full h-full flex items-center justify-center ${getGradientClasses(selectedTheme)}`}>
-                      <User size={32} className="text-white" />
-                    </div>
+                    <User size={32} className="text-white" />
+                  </div>
                 )}
                 
-                {/* Only show premium badge if user is actually premium */}
+                {/* Only show premium badge if user is premium */}
                 {userData.isPremium && (
                   <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center animate-spin-slow">
                     <div className="w-6 h-6 bg-[#030213] rounded-full flex items-center justify-center">
@@ -349,12 +391,15 @@ const UserProfilePage: React.FC = () => {
               </div>
             )}
             
-            <h1 className="text-3xl sm:text-4xl font-bold mb-3 relative">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3 relative"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
               <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
                 {userData.displayName}
               </span>
               
-              {/* Only show premium badge if user is actually premium */}
+              {/* Only show premium badge if user is premium */}
               {userData.isPremium && (
                 <span className="absolute -top-3 -right-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded-full transform rotate-12 animate-bounce">
                   Pro
@@ -362,25 +407,30 @@ const UserProfilePage: React.FC = () => {
               )}
             </h1>
             
-            {/* Fix duplicate viewers count - only show one instance */}
+            {/* Views count */}
             {userData.showBio && (
-              <div className="mt-4 flex items-center bg-white/10 px-3 py-1 rounded-full">
+              <div className="mt-4 flex items-center bg-white/10 px-3 py-1 rounded-full"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
                 <span className="text-xs text-white">{viewCount} views yet</span>
               </div>
             )}
           </div>
 
-          {/* Style toggle button with proper accessibility */}
+          {/* Style toggle button */}
           <button 
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all"
             onClick={() => setShowGlassEffect(!showGlassEffect)}
             aria-label="Toggle glass effect"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
             <div className="w-5 h-5 rounded-full bg-gradient-to-r from-purple-400 to-pink-400" />
           </button>
 
-          {/* Links Section with Improved Interactivity */}
+          {/* Links Section */}
           <div className={containerClasses}>
             {userData.fields
               .filter(field => !field.hidden)
@@ -392,25 +442,32 @@ const UserProfilePage: React.FC = () => {
                   rel="noopener noreferrer"
                   aria-label={`Visit ${field.title}`}
                   className={`
+                    hover:cursor-none
                     ${getButtonClasses(selectedTheme, userData.roundedCorners, userData.showBorders, userData.showShadows, selectedLayout, showGlassEffect)}
                     ${getAnimationClass(field.animation || userData.animation)}
                     ${!userData.buttonFullWidth && selectedLayout.id !== 'grid' ? 'self-center max-w-xs w-[300px]' : 'w-full'}
                     relative overflow-hidden group
                   `}
-                  onMouseEnter={() => setHighlight(index)}
-                  onMouseLeave={() => setHighlight(null)}
+                  onMouseEnter={() => {
+                    setHighlight(index);
+                    handleMouseEnter();
+                  }}
+                  onMouseLeave={() => {
+                    setHighlight(null);
+                    handleMouseLeave();
+                  }}
                   style={{
                     animationDelay: `${index * 100}ms`,
                     transform: `translateY(${highlight === index ? '-2px' : '0'})`,
                     transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
                   }}
                 >
-                  {/* Only show spotlight effect when client-side rendered */}
+                  {/* Spotlight effect */}
                   {isClient && highlight === index && (
                     <div className="absolute inset-0 bg-white opacity-10 rounded-full w-20 h-20 -top-5 -left-5 blur-xl animate-pulse"></div>
                   )}
                   
-                  {/* Neuomorphic inner shadow effect */}
+                  {/* Neuomorphic inner shadow */}
                   {showGlassEffect && (
                     <div className="absolute inset-0 rounded-lg shadow-inner opacity-30 pointer-events-none"></div>
                   )}
@@ -434,41 +491,46 @@ const UserProfilePage: React.FC = () => {
             <p className="text-xs text-gray-400 mb-2">Make your own link page in 60 seconds →</p>
             <button 
               className={`
-                px-6 py-3 relative overflow-hidden
+                px-6 py-3 relative overflow-hidden hover:cursor-none
+                
                 ${showGlassEffect ? 'backdrop-blur-md bg-white/10' : 'bg-gradient-to-r from-purple-600 to-pink-600'}
                 rounded-full text-white text-sm font-medium
                 transform transition-all hover:scale-105 hover:shadow-lg
                 ${showGlassEffect ? 'border border-white/20' : ''}
               `}
               onClick={() => {
-                // Use safer navigation approach than directly manipulating window.location
                 if (typeof window !== 'undefined') {
                   window.location.href = '/dashboard';
                 }
               }}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/40 to-pink-600/40 opacity-0 hover:opacity-100 transition-opacity"></div>
               <span className="relative z-10">Create Free Page</span>
             </button>
             
             {/* Premium upgrade teaser */}
-            <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-purple-900/20 to-pink-900/20 backdrop-blur-sm border border-white/10 max-w-xs mx-auto transform transition-transform hover:scale-105">
+            <div className="mt-6 p-4 rounded-lg hover:cursor-none bg-gradient-to-r from-purple-900/20 to-pink-900/20 backdrop-blur-sm border border-white/10 max-w-xs mx-auto transform transition-transform hover:scale-105"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
               <div className="flex items-center justify-center mb-2">
                 <Sparkles size={16} className="text-amber-400 mr-2" />
                 <span className="text-amber-400 text-xs font-medium">PREMIUM FEATURES</span>
               </div>
               <p className="text-xs text-gray-300 mb-3">Unlock animated backgrounds, custom domains, and advanced analytics</p>
               <button 
-                className="text-xs text-white cursor-pointer bg-gradient-to-r from-amber-600 to-amber-500 px-3 py-1 rounded-full"
+                className="text-xs text-white hover:cursor-none  bg-gradient-to-r from-amber-600 to-amber-500 px-3 py-1 rounded-full"
                 aria-label="Upgrade to premium"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
                 Upgrade Now
               </button>
             </div>
           </div>
         </div>
-        
-        
       </div>
     </div>
   );
