@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import {createUser} from "../../app/utils/api.js";
 
 export default function AuthButton() {
   const { data: session } = useSession();
@@ -14,29 +15,37 @@ export default function AuthButton() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-    
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
+  const registerUser = async () => {
+    createUser({
+      "name": email,
+      "email": email,
+      "password": password
+    });
+  }
 
-      if (result?.error) {
-        setError(result.error);
-      } else if (result?.ok) {
-        // Successful login will redirect via the useEffect below
-      }
-    } catch (err) {
-      setError("Authentication failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // const handleEmailAuth = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setError("");
+  //   setIsLoading(true);
+    
+  //   try {
+  //     const result = await signIn("credentials", {
+  //       email,
+  //       password,
+  //       redirect: false,
+  //     });
+
+  //     if (result?.error) {
+  //       setError(result.error);
+  //     } else if (result?.ok) {
+  //       // Successful login will redirect via the useEffect below
+  //     }
+  //   } catch (err) {
+  //     setError("Authentication failed. Please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   const toggleAuthMode = () => {
     setIsRegistering((prev) => !prev);
@@ -115,7 +124,7 @@ export default function AuthButton() {
           </div>
         )}
 
-        <form onSubmit={handleEmailAuth} className="mt-8 space-y-6">
+        <form  className="mt-8 space-y-6">
           <div className="rounded-md -space-y-px">
             <div className="mb-4">
               <label htmlFor="email-address" className="sr-only">
@@ -174,6 +183,7 @@ export default function AuthButton() {
 
           <div>
             <button
+            onClick={isRegistering ? registerUser : () => {}}
               type="submit"
               disabled={isLoading}
               className="group relative cursor-pointer w-full flex justify-center py-3 px-4 border border-transparent rounded-lg
