@@ -9,6 +9,7 @@ import Image from 'next/image';
 import PromoCodeInput from '@/components/promo-code-input/PromoCodeInput';
 import CustomizationComponent from '@/components/customizaton/CustomizationComponent';
 import ProfileComponent from '@/components/profile/ProfileComponent';
+import AnalyticsComponent from '@/components/analytics/AnalyticsComponent';
 
 
 type Props = {};
@@ -433,15 +434,7 @@ const [fields, setFields] = useState<FieldType[]>([
                 <span className="ml-3">Customization</span>
               </button>
             </li>
-            <li className='cursor-pointer'>
-              <button 
-                onClick={() => {setActiveTab('logs'); setSidebarOpen(false);}}
-                className={`flex items-center w-full cursor-pointer  p-2 rounded-lg ${activeTab === 'logs' ? 'bg-gray-800' : 'hover:bg-gray-800/40'}`}
-              >
-                <ClipboardList size={18} className={activeTab === 'logs' ? 'text-purple-400' : 'text-gray-400'} />
-                <span className="ml-3">Logs</span>
-              </button>
-            </li>
+           
             <li className='cursor-pointer'>
               <button 
                 onClick={() => {setActiveTab('promocode'); setSidebarOpen(false);}}
@@ -549,271 +542,20 @@ const [fields, setFields] = useState<FieldType[]>([
           
           {/* Dashboard Section */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              {/* Time range selector */}
-              {/* <div className="flex items-center justify-between bg-gray-900/50 p-4 rounded-xl border border-gray-800">
-                <h3 className="font-medium">Time Range</h3>
-                <div className="flex space-x-2">
-                  {['day', 'week', 'month', 'year'].map((range) => (
-                    <button
-                      key={range}
-                      onClick={() => setTimeRange(range)}
-                      className={`px-3 py-1 rounded-lg ${ 'bg-gray-800'}`}
-                    >
-                      {range.charAt(0).toUpperCase() + range.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div> */}
-
-              {/* Stats Overview */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <div className="bg-gray-900/50 p-4 md:p-6 rounded-xl border border-gray-800">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-400">Total Visitors</h3>
-                    <div className="p-2 bg-indigo-500/20 rounded-lg">
-                      <Users size={20} className="text-indigo-400" />
-                    </div>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{analyticsData?.totalVisits?.toLocaleString() || '0'}</p>
-                  <div className="flex items-center mt-2 text-green-500">
-                    <ArrowUpRight size={16} />
-                    <span className="text-sm ml-1">12.5% increase</span>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-400">Average Session</h3>
-                    <div className="p-2 bg-purple-500/20 rounded-lg">
-                      <Clock size={20} className="text-purple-400" />
-                    </div>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">4m 32s</p>
-                  <div className="flex items-center mt-2 text-green-500">
-                    <ArrowUpRight size={16} />
-                    <span className="text-sm ml-1">8.2% increase</span>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-400">Link Clicks</h3>
-                    <div className="p-2 bg-green-500/20 rounded-lg">
-                      <Link2 size={20} className="text-green-400" />
-                    </div>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-bold">{fields.reduce((sum, field) => sum + (field.clicks || 0), 0).toLocaleString()}</p>
-                  <div className="flex items-center mt-2 text-green-500">
-                    <ArrowUpRight size={16} />
-                    <span className="text-sm ml-1">15.3% increase</span>
-                  </div>
-                </div>
-                
-               
-              </div>
-
-              {/* Visitor Chart */}
-              <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                <h3 className="font-medium mb-6">Visitor Analytics</h3>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={visitorData}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis 
-                        dataKey="label" 
-                        tick={{ fill: '#9ca3af' }}
-                        tickLine={{ stroke: '#4b5563' }}
-                      />
-                      <YAxis 
-                        tick={{ fill: '#9ca3af' }}
-                        tickLine={{ stroke: '#4b5563' }}
-                      />
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#4b5563" />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }}
-                        itemStyle={{ color: '#d1d5db' }}
-                        labelStyle={{ color: '#f9fafb' }}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="visits" 
-                        stroke="#6366f1" 
-                        fillOpacity={1} 
-                        fill="url(#colorVisits)" 
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="clicks" 
-                        stroke="#8b5cf6" 
-                        fillOpacity={1} 
-                        fill="url(#colorClicks)" 
-                      />
-                      <Legend />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Popular Links and Device Distribution */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Popular Links */}
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="font-medium mb-6">Link Performance</h3>
-                  <div className="space-y-4">
-                    {popularLinks.map((link) => (
-                      <div key={link.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                            <Link2 size={16} className="text-indigo-400" />
-                          </div>
-                          <span className="ml-3 font-medium">{link.name}</span>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold">{link.clicks.toLocaleString()}</p>
-                          <p className={`text-xs ${link.growthDirection === 'positive' ? 'text-green-500' : 'text-red-500'}`}>
-                            {link.growth}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Device Distribution */}
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="font-medium mb-6">Device Distribution</h3>
-                  <div className="flex items-center">
-                    <div className="w-1/2 h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={deviceData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            paddingAngle={5}
-                            dataKey="count"
-                          >
-                            {deviceData.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={DEVICE_COLORS[entry.device as keyof typeof DEVICE_COLORS] || COLORS[index % COLORS.length]} 
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }}
-                            itemStyle={{ color: '#d1d5db' }}
-                            labelStyle={{ color: '#f9fafb' }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="w-1/2">
-                      <div className="space-y-4">
-                        {deviceData.map((entry, index) => (
-                          <div key={index} className="flex items-center">
-                            <div 
-                              className="w-3 h-3 rounded-full mr-2" 
-                              style={{ backgroundColor: DEVICE_COLORS[entry.device as keyof typeof DEVICE_COLORS] || COLORS[index % COLORS.length] }} 
-                            />
-                            <div>
-                              <p className="font-medium">{entry.device}</p>
-                              <p className="text-gray-400 text-sm">{entry.percentage}%</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Geographic Distribution and Daily Activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Geographic Distribution */}
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="font-medium mb-6">Geographic Distribution</h3>
-                  <div className="space-y-4">
-                    {countryData.map((country, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Globe size={16} className="text-gray-400 mr-2" />
-                          <span>{country.country}</span>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <span className="text-gray-400">{country.percentage}%</span>
-                          <div className="w-24 bg-gray-800 rounded-full h-2">
-                            <div 
-                              className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600" 
-                              style={{ width: `${country.percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Hourly Activity */}
-                <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="font-medium mb-6">Hourly Activity</h3>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={hourlyActivityData}
-                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                      >
-                        <XAxis 
-                          dataKey="hour" 
-                          tick={{ fill: '#9ca3af' }}
-                          tickLine={{ stroke: '#4b5563' }}
-                          tickFormatter={(hour) => `${hour}:00`}
-                        />
-                        <YAxis 
-                          tick={{ fill: '#9ca3af' }}
-                          tickLine={{ stroke: '#4b5563' }}
-                        />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#111827', borderColor: '#374151' }}
-                          itemStyle={{ color: '#d1d5db' }}
-                          labelStyle={{ color: '#f9fafb' }}
-                          formatter={(value, name) => [`${value} visits`, `${name}`]}
-                          labelFormatter={(hour) => `Hour ${hour}:00`}
-                        />
-                        <Bar dataKey="visits" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-
-              {/* Export Data Button */}
-              <div className="flex justify-end">
-                <button 
-                  onClick={exportAnalyticsData}
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white"
-                >
-                  <Download size={16} className="mr-2" />
-                  Export Analytics Data
-                </button>
-              </div>
-            </div>
+            //  id: number;
+            //  title: string;
+            //  link: string;
+            //  image: string;
+            //  clicks?: number;
+            <AnalyticsComponent analyticsData={analyticsData} links={[
+              {
+                id: 30,
+                title: "Google",
+                link: "https://google.com",
+                image: "https://cdn-icons-png.flaticon.com/128/432/432492.png",
+                clicks: 100
+              }
+            ]}/>
           )}
 
           {/* Customization Section */}
@@ -822,62 +564,7 @@ const [fields, setFields] = useState<FieldType[]>([
         )}
         
         {/* Logs Section */}
-        {activeTab === 'logs' && (
-          <div className="space-y-6">
-            <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
-              <h3 className="font-medium mb-6">Recent Activity</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-gray-400 border-b border-gray-800">
-                      <th className="pb-3 font-medium">Country</th>
-                      <th className="pb-3 font-medium">Time</th>
-                      <th className="pb-3 font-medium">Page</th>
-                      <th className="pb-3 font-medium">Device</th>
-                      <th className="pb-3 font-medium">IP</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-gray-800">
-                        <td className="py-3">
-                          <div className="flex items-center">
-                            <Globe size={16} className="text-gray-400 mr-2" />
-                            <span>{log.country}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-gray-400">{log.time}</td>
-                        <td className="py-3">{log.page}</td>
-                        <td className="py-3">
-                          <div className="flex items-center">
-                            {log.device === 'Mobile' ? (
-                              <Smartphone size={16} className="text-indigo-400 mr-1" />
-                            ) : (
-                              <Laptop size={16} className="text-purple-400 mr-1" />
-                            )}
-                            <span>{log.device}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-gray-400">HIDDEN</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            {/* Export Activity Logs */}
-            <div className="flex justify-end">
-              <button 
-                onClick={exportAnalyticsData}
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg text-white"
-              >
-                <Download size={16} className="mr-2" />
-                Export Activity Logs
-              </button>
-            </div>
-          </div>
-        )}
+        
       </main>
     </div>
   </div>
