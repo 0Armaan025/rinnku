@@ -23,6 +23,9 @@ export const createUser = async (userData) => {
 
 export const loginUser = async (email, password) => {
     try {
+
+        console.log("im sending: ", { email, password });
+
         const res = await fetch(`${API_BASE_URL}/api/user/login`, {
             method: "POST",
             headers: {
@@ -32,7 +35,9 @@ export const loginUser = async (email, password) => {
         });
 
         if (!res.ok) {
-            throw new Error(`Login failed: ${res.statusText}`);
+            const errorData = await res.json();  // Read error response
+            console.error("Login error response:", errorData);
+            throw new Error(errorData.error || `Login failed: ${res.statusText}`);
         }
 
         const data = await res.json();
@@ -49,7 +54,207 @@ export const getCurrentUser = async (token) => {
         const res = await fetch(`${API_BASE_URL}/api/user/me`, {
             method: "GET",
             headers: {
-                "Authorization": `${token}`,
+                "Authorization": `Bearer ${token}`,
+            },
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const updateUser = async (token, name, avatar) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/user/update`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name, avatar }),
+            // avatar is going to be a link that would be either "", so text is applied as avatar like AR, or it will be a link that will be first stored to cloudinary
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const getuserByName = async (token, name) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/user/${name}`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            // auth is not needed tho here
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const createBioLink = async (token, rinnkuUrl) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/bioLinks/create`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({ rinnkuUrl }),
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const updateBioLink = async (token, rinnkuUrl) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/bioLinks/update`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({ rinnkuUrl }),
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const deleteBioLink = async (token) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/bioLinks/delete`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const trackVisit = async (token, rinnkuUrl) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/analytics/track-visit`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({ rinnkuUrl }),
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const trackClick = async (token, rinnkuUrl, linkId, linkName) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/analytics/track-click`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({ rinnkuUrl, linkId, linkName }),
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+export const getStats = async (token, rinnkuUrl) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/analytics/get`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({ rinnkuUrl }),
+        });
+
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user: ${res.statusText}`);
+        }
+
+        const userData = await res.json();
+        return userData;
+    } catch (error) {
+        console.error("Fetch user error:", error);
+        return { error: error.message };
+    }
+};
+
+// PROMO CODE THINGY
+
+export const applyPromoCode = async (token, code) => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/promocode/apply/${code}`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
             },
         });
 

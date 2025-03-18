@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import {createUser} from "../../app/utils/api.js";
+import {createUser, loginUser} from "../../app/utils/api.js";
+import { useRouter } from "next/navigation";
 
 export default function AuthButton() {
+  const router =useRouter();
   const { data: session } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,12 +17,39 @@ export default function AuthButton() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const registerUser = async () => {
-    createUser({
+  const registerUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const response = await createUser({
       "name": email,
       "email": email,
       "password": password
     });
+
+    if(response.error) {
+      setError(response.error);
+    }
+    else {
+      
+      localStorage.setItem("token", response.token);
+      window.location.href='/dashboard';
+    }
+  }
+
+  const loginTheUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const response = await loginUser(
+      // "name": email,
+      email, password
+    );
+
+    if(response.error) {
+      setError(response.error);
+    }
+    else {
+      
+      localStorage.setItem("token", response.token);
+      window.location.href='/dashboard';
+    }
   }
 
   // const handleEmailAuth = async (e: React.FormEvent) => {
@@ -47,6 +76,13 @@ export default function AuthButton() {
   //   }
   // };
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && (session || localStorage.getItem("token"))) {
+      console.log("logged in!", session);
+      router.push("/dashboard"); // ✅ Next.js navigation
+    }
+  }, [session]);
+
   const toggleAuthMode = () => {
     setIsRegistering((prev) => !prev);
     setError("");
@@ -57,13 +93,7 @@ export default function AuthButton() {
   };
 
   // Handle redirection after login
-  if (session) {
-    // Using useEffect is better for redirection in React than direct window.location
-    // But keeping this pattern for compatibility with your code
-    console.log("logged in!", session);
-    window.location.href = "/dashboard";
-    return null; // Prevent rendering while redirecting
-  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ">
@@ -174,7 +204,9 @@ export default function AuthButton() {
           {!isRegistering && (
             <div className="flex items-center justify-end">
               <div className="text-sm">
-                <a href="#" className="font-medium text-indigo-400 hover:text-indigo-300">
+                <a href="#" className="font-medium text-indigo-400 hover:text-indigo-300" onClick={() => {
+                  alert("just dm armaan");
+                }}>
                   Forgot your password?
                 </a>
               </div>
@@ -183,7 +215,7 @@ export default function AuthButton() {
 
           <div>
             <button
-            onClick={isRegistering ? registerUser : () => {}}
+            onClick={isRegistering ? registerUser : loginTheUser}
               type="submit"
               disabled={isLoading}
               className="group relative cursor-pointer w-full flex justify-center py-3 px-4 border border-transparent rounded-lg
