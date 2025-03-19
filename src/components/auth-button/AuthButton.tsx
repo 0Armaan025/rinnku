@@ -8,8 +8,9 @@ import {createUser, loginUser} from "../../app/utils/api.js";
 import { useRouter } from "next/navigation";
 
 export default function AuthButton() {
-  const router =useRouter();
+  const router = useRouter();
   const { data: session } = useSession();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
@@ -20,7 +21,7 @@ export default function AuthButton() {
   const registerUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const response = await createUser({
-      "name": email,
+      "name": name,
       "email": email,
       "password": password
     });
@@ -29,7 +30,6 @@ export default function AuthButton() {
       setError(response.error);
     }
     else {
-      
       localStorage.setItem("token", response.token);
       window.location.href='/dashboard';
     }
@@ -38,7 +38,6 @@ export default function AuthButton() {
   const loginTheUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const response = await loginUser(
-      // "name": email,
       email, password
     );
 
@@ -46,35 +45,10 @@ export default function AuthButton() {
       setError(response.error);
     }
     else {
-      
       localStorage.setItem("token", response.token);
       window.location.href='/dashboard';
     }
   }
-
-  // const handleEmailAuth = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setError("");
-  //   setIsLoading(true);
-    
-  //   try {
-  //     const result = await signIn("credentials", {
-  //       email,
-  //       password,
-  //       redirect: false,
-  //     });
-
-  //     if (result?.error) {
-  //       setError(result.error);
-  //     } else if (result?.ok) {
-  //       // Successful login will redirect via the useEffect below
-  //     }
-  //   } catch (err) {
-  //     setError("Authentication failed. Please try again.");
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   useEffect(() => {
     if (typeof window !== "undefined" && (session || localStorage.getItem("token"))) {
@@ -92,8 +66,13 @@ export default function AuthButton() {
     setShowPassword((prev) => !prev);
   };
 
-  // Handle redirection after login
-
+  const handleGoogleSignIn = () => {
+    signIn("google", { 
+      callbackUrl: "/dashboard",
+      // Pass any additional parameters you need for Google auth
+      params: { prompt: "select_account" }
+    });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ">
@@ -111,7 +90,7 @@ export default function AuthButton() {
 
         <div className="flex flex-col gap-4">
           <button
-            onClick={() => signIn("google")}
+            onClick={handleGoogleSignIn}
             disabled={isLoading}
             className="group relative cursor-pointer w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-white font-medium 
                       bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700
@@ -154,7 +133,28 @@ export default function AuthButton() {
           </div>
         )}
 
-        <form  className="mt-8 space-y-6">
+        <form className="mt-8 space-y-6">
+          {isRegistering && (
+            <div className="mb-4">
+              <label htmlFor="name" className="sr-only">
+                Full Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-600
+                       placeholder-gray-400 text-white bg-gray-700/50 focus:outline-none focus:ring-2
+                       focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
+                placeholder="Full Name"
+              />
+            </div>
+          )}
+          
           <div className="rounded-md -space-y-px">
             <div className="mb-4">
               <label htmlFor="email-address" className="sr-only">
@@ -169,8 +169,8 @@ export default function AuthButton() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-600
-                         placeholder-gray-400 text-white bg-gray-700/50 focus:outline-none focus:ring-2
-                         focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
+                       placeholder-gray-400 text-white bg-gray-700/50 focus:outline-none focus:ring-2
+                       focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
                 placeholder="Email address"
               />
             </div>
@@ -187,8 +187,8 @@ export default function AuthButton() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-600
-                         placeholder-gray-400 text-white bg-gray-700/50 focus:outline-none focus:ring-2
-                         focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
+                       placeholder-gray-400 text-white bg-gray-700/50 focus:outline-none focus:ring-2
+                       focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
                 placeholder="Password"
               />
               <button
@@ -215,7 +215,7 @@ export default function AuthButton() {
 
           <div>
             <button
-            onClick={isRegistering ? registerUser : loginTheUser}
+              onClick={isRegistering ? registerUser : loginTheUser}
               type="submit"
               disabled={isLoading}
               className="group relative cursor-pointer w-full flex justify-center py-3 px-4 border border-transparent rounded-lg

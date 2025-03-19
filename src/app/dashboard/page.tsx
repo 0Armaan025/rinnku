@@ -10,6 +10,7 @@ import PromoCodeInput from '@/components/promo-code-input/PromoCodeInput';
 import CustomizationComponent from '@/components/customizaton/CustomizationComponent';
 import ProfileComponent from '@/components/profile/ProfileComponent';
 import AnalyticsComponent from '@/components/analytics/AnalyticsComponent';
+import { getCurrentUser, getStats } from '../utils/api';
 
 
 type Props = {};
@@ -51,6 +52,8 @@ const DashboardPage = (props: Props) => {
   const [username, setUsername] = useState('johndoe');
   const [displayName, setDisplayName] = useState('John Doe');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [email, setEmail] = useState('johndoe@gmail.com');
+  const [rinnkuUrl, setRinnkuUrl] = useState('');
   const [isProfilePublic, setIsProfilePublic] = useState(true);
   
   const [promoCode, setPromoCode] = useState('');
@@ -67,20 +70,30 @@ const [fields, setFields] = useState<FieldType[]>([
       // This would be replaced with your actual API call
       // const response = await fetch('/api/analytics');
       // const data = await response.json();
+      setLoading(true);
       
       // Mock data for demonstration
-      const mockAnalyticsData: AnalyticsData = {
-        rinnkuUrl: 'johndoe',
-        totalVisits: 24892,
-        clicks: generateMockClicks(300),
-        createdAt: new Date('2024-12-01')
-      };
-      
-      setAnalyticsData(mockAnalyticsData);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching analytics data:', error);
-      setLoading(false);
+      try {
+        
+        const token = localStorage.getItem("token");
+
+        if(!token) {
+          alert("Please login or something first");
+        }
+        else {
+
+          const data = await getStats(token, displayName);
+          setAnalyticsData(data);
+        }
+
+      } catch (error) {
+        console.error('Error fetching analytics data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    catch(e) {
+
     }
   };
   
@@ -114,6 +127,38 @@ const [fields, setFields] = useState<FieldType[]>([
     return clicks.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   };
 
+  const fetchUserData = async () => {
+    // todo: fetch the data
+
+    if(!localStorage.getItem("token")) { 
+      alert("please login once again, there is some problem");
+      window.location.href = "/auth";
+      localStorage.setItem("token", "");
+    }
+    
+    const response = await getCurrentUser(localStorage.getItem("token"));
+    console.log(response);
+    try {
+      setUsername(response.name);
+      if(response.name) {
+        setDisplayName(response.name);
+        
+      }
+      else {
+        setDisplayName(response.email);
+      }
+      setEmail(response.email);
+    }
+    catch(e) {
+      alert("error, sorry man!");
+
+    }
+      
+    
+    
+    
+  }
+
   useEffect(() => {
     if (status === "loading") return;
 
@@ -123,6 +168,7 @@ const [fields, setFields] = useState<FieldType[]>([
 
     if (token  && token !=  "") {
       fetchAnalyticsData();
+      fetchUserData();
     }
     else {
       if (status === "unauthenticated") {
@@ -131,6 +177,7 @@ const [fields, setFields] = useState<FieldType[]>([
         }, 5000);
       } else if (status === "authenticated" ) {
         fetchAnalyticsData();
+        fetchUserData();
       }
     }
 
@@ -140,7 +187,9 @@ const [fields, setFields] = useState<FieldType[]>([
 
   // Prepare derived data for charts
   const prepareVisitorData = () => {
-    if (!analyticsData) return [];
+    if (!analyticsData || !Array.isArray(analyticsData.clicks)) {
+      return [{ label: 'No data yet', visits: 0, clicks: 0 }];
+  }
     
     const timeRangeMap = {
       'day': { unit: 'hour', count: 24, format: (d: Date) => d.getHours() + ':00' },
@@ -171,8 +220,10 @@ const [fields, setFields] = useState<FieldType[]>([
       buckets[label.toString()] = { label: label.toString(), visits: 0, clicks: 0 };
     }
     
-    // Fill with data
-    analyticsData.clicks.forEach(click => {
+    
+
+
+    analyticsData?.clicks?.forEach(click => {
       const date = new Date(click.timestamp);
       let label;
       

@@ -5,7 +5,8 @@ import customizationUtils from './utils'; // Import the customization utils
 import FieldType from './types';
 
 // Helper functions for field management
-export const addField = (fields: FieldType[], setFields: React.Dispatch<React.SetStateAction<FieldType[]>>) => {
+export const addField = (fields: FieldType[],   setFields: React.Dispatch<React.SetStateAction<FieldType[]>>
+) => {
   const newId = fields.length > 0 ? Math.max(...fields.map(f => f.id)) + 1 : 1;
   setFields([...fields, {
     id: newId,

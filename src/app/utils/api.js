@@ -227,16 +227,16 @@ export const trackClick = async (token, rinnkuUrl, linkId, linkName) => {
 
 export const getStats = async (token, rinnkuUrl) => {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/analytics/get`, {
+        const res = await fetch(`${API_BASE_URL}/api/analytics/stats/${rinnkuUrl}`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
             },
-            body: JSON.stringify({ rinnkuUrl }),
+
         });
 
         if (!res.ok) {
-            throw new Error(`Failed to fetch user: ${res.statusText}`);
+            console.log("no analytics yet");
         }
 
         const userData = await res.json();
