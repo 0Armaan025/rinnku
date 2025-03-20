@@ -14,11 +14,14 @@ import { renderPreview, addField, saveChanges, updateField, deleteField , handle
 import FieldType from './types';
 
 import customizationUtils from './utils';
+import { getCurrentUser } from '@/app/utils/api';
 
 type Props = {}
 
 
 // Enhanced theme options with more professional palette
+
+
 
 
 export default function CustomizationComponent(props: Props) {
@@ -84,6 +87,8 @@ export default function CustomizationComponent(props: Props) {
   };
 
 
+
+
   // UI State
   const [activeTab, setActiveTab] = useState('design');
   const [selectedTheme, setSelectedTheme] = useState(customizationUtils.themeOptions[0]);
@@ -104,9 +109,9 @@ export default function CustomizationComponent(props: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   
   // Profile data
-  const [username, setUsername] = useState('johndoe');
-  const [displayName, setDisplayName] = useState('John Doe');
-  const [bio, setBio] = useState('Digital designer and content creator');
+  const [username, setUsername] = useState('armaan');
+  const [displayName, setDisplayName] = useState('Armaan');
+  const [bio, setBio] = useState("Hey there, I'm using Rinkuu");
   const [avatar, setAvatar] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
@@ -126,6 +131,50 @@ export default function CustomizationComponent(props: Props) {
     { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', type: 'social', animation: 'none' },
     { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '', type: 'social', animation: 'none' },
   ]);
+
+  // Update the useEffect hook to find the matching theme in the options array
+  useEffect(() => {
+    const getCurrentUserData = async () => {
+      const response = await getCurrentUser(localStorage.getItem("token"));
+  
+      if (response) {
+        // Initialize fields with data from backend
+        setUsername(response.name);
+        setDisplayName(response.rinnkuUrl?response.rinnkuUrl:response.name);
+        setBio(response.bio);
+        
+        
+        // Find the matching theme object
+        const matchingTheme = customizationUtils.themeOptions.find(theme => theme.id === response.theme);
+        if (matchingTheme) {
+          setSelectedTheme(matchingTheme);
+        }
+  
+        // Find the matching layout object
+        const matchingLayout = customizationUtils.layoutTemplates.find(layout => layout.id === response.layout);
+        if (matchingLayout) {
+          setSelectedLayout(matchingLayout);
+        }
+  
+        // Find the matching animation object
+        const matchingAnimation = customizationUtils.animationOptions.find(animation => animation.id === response.animation);
+        if (matchingAnimation) {
+          setSelectedAnimation(matchingAnimation);
+        }
+  
+        setShowBio(response.showBio);
+        setShowAvatar(response.showAvatar);
+        setRoundedCorners(response.roundedCorners);
+        setShowBorders(response.showBorders);
+        setShowShadows(response.showShadows);
+        setButtonFullWidth(response.buttonFullWidth);
+        setShowLinkIcons(response.showLinkIcons);
+        
+      }
+    };
+  
+    getCurrentUserData();
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -167,7 +216,7 @@ export default function CustomizationComponent(props: Props) {
     }
   }, [avatarFile]);
 
-  // Field management functions
+  
   
   // Function to render the tabs content
   const renderTabContent = () => {
