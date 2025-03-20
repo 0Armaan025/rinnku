@@ -55,6 +55,8 @@ const DashboardPage = (props: Props) => {
   const [email, setEmail] = useState('johndoe@gmail.com');
   const [rinnkuUrl, setRinnkuUrl] = useState('');
   const [isProfilePublic, setIsProfilePublic] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
+
   
   const [promoCode, setPromoCode] = useState('');
   
@@ -75,10 +77,10 @@ const [fields, setFields] = useState<FieldType[]>([
       // Mock data for demonstration
       try {
         
-        const token = localStorage.getItem("token");
+        
 
         if(!token) {
-          alert("Please login or something first");
+          
         }
         else {
 
@@ -130,12 +132,8 @@ const [fields, setFields] = useState<FieldType[]>([
   const fetchUserData = async () => {
     // todo: fetch the data
 
-    if(!localStorage.getItem("token")) { 
-      alert("please login once again, there is some problem");
-      window.location.href = "/auth";
-      localStorage.setItem("token", "");
-    }
-    
+   
+    if(!localStorage.getItem("token")) return alert("Please login first");
     const response = await getCurrentUser(localStorage.getItem("token"));
     console.log(response);
     try {
@@ -159,105 +157,102 @@ const [fields, setFields] = useState<FieldType[]>([
     
   }
 
+  
+
   useEffect(() => {
     if (status === "loading") return;
-
+  
     console.log("Session status:", status, "Session data:", session);
-
-    const token = localStorage.getItem("token");
-
-    if (token  && token !=  "") {
-      fetchAnalyticsData();
-      fetchUserData();
-    }
-    else {
-      if (status === "unauthenticated") {
-        setTimeout(() => {
-          window.location.href = "/auth";
-        }, 5000);
-      } else if (status === "authenticated" ) {
-        fetchAnalyticsData();
-        fetchUserData();
+  
+    async function fetchToken() {
+      try {
+        const storedToken = localStorage.getItem("token");
+  
+        if (storedToken && storedToken !== "") {
+          setToken(storedToken);
+        } else {
+          console.log("bsdk, token toh yeh hai:", session?.accessToken);
+          const accessToken = session?.accessToken;
+          localStorage.setItem("token", accessToken as string);
+        }
+      } catch (error) {
+        console.error("Error fetching token:", error);
       }
     }
-
-    
-   
+  
+    fetchToken();
+  
+    setTimeout(() => {
+      if (localStorage.getItem("token") && localStorage.getItem("token") !== "") {
+        fetchAnalyticsData();
+        fetchUserData();
+      } else {
+        if (status === "unauthenticated") {
+          setTimeout(() => {
+            window.location.href = "/auth";
+          }, 5000);
+        } else if (status === "authenticated") {
+          fetchAnalyticsData();
+          fetchUserData();
+        }
+      }
+    }, 1500); // ⏳ Wait for 1.5 seconds before calling these functions
   }, [status, session]);
+  
 
   // Prepare derived data for charts
   const prepareVisitorData = () => {
     if (!analyticsData || !Array.isArray(analyticsData.clicks)) {
-      return [{ label: 'No data yet', visits: 0, clicks: 0 }];
-  }
-    
+        console.log("analyticsData is undefined or clicks is not an array:", analyticsData);
+        return [{ label: 'No data yet', visits: 0, clicks: 0 }];
+    }
+
     const timeRangeMap = {
       'day': { unit: 'hour', count: 24, format: (d: Date) => d.getHours() + ':00' },
       'week': { unit: 'day', count: 7, format: (d: Date) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()] },
-      'month': { unit: 'day', count: 30, format: (d: Date) => d.getDate() },
+      'month': { unit: 'day', count: 30, format: (d: Date) => d.getDate().toString() },
       'year': { unit: 'month', count: 12, format: (d: Date) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] }
     };
-    
+
     const { unit, count, format } = timeRangeMap[timeRange as keyof typeof timeRangeMap];
-    
-    // Create buckets
+
     const now = new Date();
     const buckets: Record<string, { label: string, visits: number, clicks: number }> = {};
-    
+
     for (let i = 0; i < count; i++) {
       const date = new Date();
-      if (unit === 'hour') {
-        date.setHours(now.getHours() - i, 0, 0, 0);
-      } else if (unit === 'day') {
-        date.setDate(now.getDate() - i);
-        date.setHours(0, 0, 0, 0);
-      } else if (unit === 'month') {
-        date.setMonth(now.getMonth() - i, 1);
-        date.setHours(0, 0, 0, 0);
-      }
-      
+      if (unit === 'hour') date.setHours(now.getHours() - i, 0, 0, 0);
+      else if (unit === 'day') date.setDate(now.getDate() - i);
+      else if (unit === 'month') date.setMonth(now.getMonth() - i, 1);
+
       const label = format(date);
       buckets[label.toString()] = { label: label.toString(), visits: 0, clicks: 0 };
+    }
+
+    console.log("Buckets initialized:", buckets);
+
+    const clicks = analyticsData.clicks ?? [];
+    
+if(clicks) {
+  clicks.forEach(click => {
+    const date = new Date(click.timestamp);
+    const label = format(date);
+
+    if (buckets[label]) {
+      buckets[label].clicks += 1;
+      buckets[label].visits += 1;
+    }
+  });  
+
     }
     
     
 
-
-    analyticsData?.clicks?.forEach(click => {
-      const date = new Date(click.timestamp);
-      let label;
-      
-      if (unit === 'hour') {
-        label = date.getHours() + ':00';
-      } else if (unit === 'day') {
-        label = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
-      } else if (unit === 'month') {
-        label = date.getDate().toString();
-      } else {
-        label = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()];
-      }
-      
-      // Only count if within the time range
-      const timeDiff = now.getTime() - date.getTime();
-      const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
-      
-      if ((timeRange === 'day' && daysDiff <= 1) ||
-          (timeRange === 'week' && daysDiff <= 7) ||
-          (timeRange === 'month' && daysDiff <= 30) ||
-          (timeRange === 'year' && daysDiff <= 365)) {
-        if (buckets[label]) {
-          buckets[label].clicks += 1;
-          // Assuming each click also counts as a visit
-          buckets[label].visits += 1;
-        }
-      }
-    });
-    
     return Object.values(buckets).reverse();
-  };
+};
 
   const prepareCountryData = () => {
-    if (!analyticsData) return [];
+    if (!analyticsData || !analyticsData.clicks) return [];
     
     const countryMap: Record<string, number> = {};
     
@@ -272,7 +267,7 @@ const [fields, setFields] = useState<FieldType[]>([
   };
 
   const prepareDeviceData = () => {
-    if (!analyticsData) return [];
+    if (!analyticsData || !analyticsData.clicks) return [];
     
     const deviceMap: Record<string, number> = {};
     
@@ -285,7 +280,7 @@ const [fields, setFields] = useState<FieldType[]>([
   };
 
   const prepareLinkPerformance = () => {
-    if (!analyticsData || !fields) return [];
+    if (!analyticsData || !fields || !analyticsData.clicks) return [];
     
     const linkClickMap: Record<string, number> = {};
     
@@ -310,7 +305,7 @@ const [fields, setFields] = useState<FieldType[]>([
   };
 
   const prepareRecentLogs = () => {
-    if (!analyticsData) return [];
+    if (!analyticsData || !analyticsData.clicks) return [];
     
     return analyticsData.clicks.slice(0, 10).map((click, index) => {
       const now = new Date();
@@ -342,7 +337,7 @@ const [fields, setFields] = useState<FieldType[]>([
   };
 
   const prepareHourlyActivityData = () => {
-    if (!analyticsData) return [];
+    if (!analyticsData || !analyticsData.clicks) return [];
     
     const hourlyData = Array(24).fill(0).map((_, i) => ({ hour: i, visits: 0 }));
     
@@ -381,7 +376,7 @@ const [fields, setFields] = useState<FieldType[]>([
   
   // Export analytics data
   const exportAnalyticsData = () => {
-    if (!analyticsData) return;
+    if (!analyticsData || !analyticsData.clicks) return;
     
     // Prepare CSV data
     const headers = ['Timestamp', 'Country', 'Device', 'IP', 'Link'];
@@ -411,6 +406,15 @@ const [fields, setFields] = useState<FieldType[]>([
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const getInitials = (): string => {
+    return displayName
+      .split(' ')
+      .map(name => name[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   if (loading) {
@@ -446,8 +450,15 @@ const [fields, setFields] = useState<FieldType[]>([
         {/* User profile summary */}
         <div className="p-4 flex items-center border-b border-gray-800">
         <Image src="https://cdn-icons-png.flaticon.com/128/432/432492.png" height={40} width={20} className='mr-2' alt="diamond"/>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
-            JD
+        <div 
+              className={`w-12 h-12 rounded-full flex items-center justify-center relative overflow-hidden bg-gradient-to-r from-indigo-500 to-purple-600'`}
+              
+  
+          >
+            
+              <span className="text-white text-2xl font-bold">{getInitials()}</span>
+            
+            
           </div>
           <div className="ml-3">
             <p className="text-gray-200">{displayName}</p>

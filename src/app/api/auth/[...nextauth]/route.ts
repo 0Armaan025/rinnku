@@ -40,18 +40,28 @@ const handler = NextAuth({
       }
       return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id?.toString();
+    async jwt({ token, user, account }) {
+        
+        if (account && user) {
+          return {
+            ...token,
+            accessToken: account.access_token,
+            id: user.id?.toString(),
+          };
+        }
+        return token;
+      },
+      async session({ session, token }) {
+        if (token.id) {
+          session.user = { 
+            ...session.user, 
+            id: token.id 
+          };
+        }
+        // Add access token to the session
+        session.accessToken = token.accessToken;
+        return session;
       }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token.id) {
-        session.user = { ...session.user, id: token.id } as { id: string };
-      }
-      return session;
-    },
   },
   session: {
     strategy: "jwt",

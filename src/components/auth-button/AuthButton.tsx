@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { getSession, signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import {createUser, loginUser} from "../../app/utils/api.js";
@@ -34,6 +34,8 @@ export default function AuthButton() {
       window.location.href='/dashboard';
     }
   }
+
+  
 
   const loginTheUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +77,7 @@ export default function AuthButton() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ">
+    <div className="min-h-screen flex items-center justify-center py-8 mb-8 px-4 sm:px-6 lg:px-8 ">
       <div className="max-w-md w-full space-y-8 bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-500">
@@ -88,7 +90,7 @@ export default function AuthButton() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        {/* <div className="flex flex-col gap-4">
           <button
             onClick={handleGoogleSignIn}
             disabled={isLoading}
@@ -125,7 +127,7 @@ export default function AuthButton() {
             <span className="px-4 text-sm text-gray-400">or continue with email</span>
             <div className="flex-1 h-px bg-gray-600"></div>
           </div>
-        </div>
+        </div> */}
 
         {error && (
           <div className="bg-red-900/30 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm">
