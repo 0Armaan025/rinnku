@@ -10,8 +10,8 @@ export const addField = (fields: FieldType[],   setFields: React.Dispatch<React.
   const newId = fields.length > 0 ? Math.max(...fields.map(f => f.id)) + 1 : 1;
   setFields([...fields, {
     id: newId,
-    title: '',
-    link: '',
+    name: '',
+    url: '',
     image: '',
     type: 'default',
     animation: 'none'
@@ -255,14 +255,14 @@ export const renderPreview = (
         {fields.filter(f => !f.hidden).map((field) => (
           <a
             key={field.id}
-            href={field.link}
+            href={field.url}
             target="_blank"
             rel="noopener noreferrer"
             className={`${getButtonClasses(selectedTheme, showBorders, showBorders, true, selectedLayout)} ${getAnimationClass(field.animation || 'none')} ${!buttonFullWidth && selectedLayout.id !== 'grid' ? 'self-center max-w-xs' : 'w-full'}`}
           >
             <div className="flex items-center">
               {showLinkIcons && getLinkIcon(field)}
-              <span className={selectedTheme.textColor}>{field.title}</span>
+              <span className={selectedTheme.textColor}>{field.name}</span>
             </div>
             <ArrowUpRight size={16} className={selectedTheme.textColor} />
           </a>

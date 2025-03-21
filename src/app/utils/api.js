@@ -55,6 +55,7 @@ export const getCurrentUser = async (token) => {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
         });
 
@@ -70,14 +71,15 @@ export const getCurrentUser = async (token) => {
     }
 };
 
-export const updateUser = async (token, name, avatar) => {
+export const updateUser = async (token, userDataNew) => {
     try {
         const res = await fetch(`${API_BASE_URL}/api/user/update`, {
             method: "PUT",
             headers: {
                 "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
-            body: JSON.stringify({ name, avatar }),
+            body: JSON.stringify(userDataNew),
             // avatar is going to be a link that would be either "", so text is applied as avatar like AR, or it will be a link that will be first stored to cloudinary
         });
 

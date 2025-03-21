@@ -1,7 +1,7 @@
 interface FieldType {
     id: number;
-    title: string;
-    link: string;
+    name: string;
+    url: string;
     image: string;
     type?: string;
     hidden?: boolean;

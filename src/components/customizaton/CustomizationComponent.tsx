@@ -9,12 +9,12 @@ import {
   Crop, Grip, Layers, CheckCircle, Circle,
   Move, Headphones, Video, ShoppingBag, MessageCircle, ImageIcon, Upload
 } from 'lucide-react';
-import { renderPreview, addField, saveChanges, updateField, deleteField , handleLinkIconUpload} from './helperFunctions';
+import { renderPreview, addField, updateField, deleteField , handleLinkIconUpload} from './helperFunctions';
 
 import FieldType from './types';
 
 import customizationUtils from './utils';
-import { getCurrentUser } from '@/app/utils/api';
+import { getCurrentUser, updateUser } from '@/app/utils/api';
 
 type Props = {}
 
@@ -25,7 +25,66 @@ type Props = {}
 
 
 export default function CustomizationComponent(props: Props) {
-  // component code remains exactly the same
+
+  const saveChanges = async () => {
+    try {
+      // Get the current token from localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found");
+        return;
+      }
+  
+      // Format the fields data to match the User schema
+      const formattedLinks = fields.map(field => ({
+        name: field.name || '',
+        url: field.url || '',
+        type: field.type || 'social',
+        animation: field.animation || 'none',
+        image: field.image || "",
+      }));
+  
+      // Prepare the user data object that matches the MongoDB schema
+      const userData = {
+        bio: bio || "Hey there, I'm using Rinkuu",
+        rinnkuUrl: username,
+        name: displayName,
+        avatar: '',
+        theme: selectedTheme.id || "Midnight",
+        layout: selectedLayout.id || "Compact",
+        animation: selectedAnimation.id || "Scale",
+        links: formattedLinks || [],
+        roundedCorners: roundedCorners || true,
+        showShadows: showShadows || true,
+        showBorders: showBorders || true,
+        fullWidth: buttonFullWidth || true,
+        showAvatar: showAvatar || true,
+        showIcons: showLinkIcons || true,
+        showBio: showBio || true,
+      };
+  
+      // Call the API function to update the user
+      const response = await updateUser(token, userData);
+      
+      if (response.error) {
+        console.error("Error saving changes:", response.error);
+        return;
+      }
+  
+      // Show success message and reset modified state
+      setSavedMessage(true);
+      setModified(false);
+      
+      // Hide the success message after 3 seconds
+      setTimeout(() => {
+        setSavedMessage(false);
+      }, 3000);
+      
+    } catch (error) {
+      console.error("Error saving changes:", error);
+    }
+  };
+  
 
   const handleDragStart = (id: number) => {
     setDraggingField(id);
@@ -109,9 +168,9 @@ export default function CustomizationComponent(props: Props) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   
   // Profile data
-  const [username, setUsername] = useState('armaan');
-  const [displayName, setDisplayName] = useState('Armaan');
-  const [bio, setBio] = useState("Hey there, I'm using Rinkuu");
+  const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState('');
@@ -127,11 +186,11 @@ export default function CustomizationComponent(props: Props) {
 
   // Fields data
   const [fields, setFields] = useState<FieldType[]>([
-    { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: '', type: 'default', animation: 'none' },
-    { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', type: 'social', animation: 'none' },
-    { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '', type: 'social', animation: 'none' },
+    { id: 1, name: '', url: '', image: '', type: 'default', animation: 'none' },
   ]);
 
+
+  
   // Update the useEffect hook to find the matching theme in the options array
   useEffect(() => {
     const getCurrentUserData = async () => {
@@ -139,10 +198,10 @@ export default function CustomizationComponent(props: Props) {
   
       if (response) {
         // Initialize fields with data from backend
-        setUsername(response.name);
-        setDisplayName(response.rinnkuUrl?response.rinnkuUrl:response.name);
-        setBio(response.bio);
-        
+        setDisplayName(response.name);
+        setUsername(response.rinnkuUrl?response.rinnkuUrl?response.rinnkuUrl:"":response.name?response.name:"");
+        setBio(response.bio || 'Hey there! im using Rinkuu');
+        setAvatar(response.avatar!="" || response.avatar!=null?response.avatar:"");
         
         // Find the matching theme object
         const matchingTheme = customizationUtils.themeOptions.find(theme => theme.id === response.theme);
@@ -170,7 +229,29 @@ export default function CustomizationComponent(props: Props) {
         setButtonFullWidth(response.buttonFullWidth);
         setShowLinkIcons(response.showLinkIcons);
         
+        alert(response.links[0].name);
+
+        if (response.links && response.links.length > 0) {
+          const formattedFields = response.links.map((link:FieldType, index:number) => {
+            // Ensure each link is a valid object
+            if (!link) return null;
+            
+            return {
+              id: index + 1,
+              title: link.name || '', // Use empty string if title is null
+              link: link.url || '',  // Use empty string if link is null
+              image: link.image || '',
+              type: link.type || 'default',
+              animation: link.animation || 'none',
+              hidden: false
+            };
+          }).filter((item: FieldType | null): item is FieldType => item !== null); // Remove any null entries
+          
+          setFields(formattedFields);
+        }
+        
       }
+      
     };
   
     getCurrentUserData();
@@ -458,7 +539,7 @@ export default function CustomizationComponent(props: Props) {
                   <span className="text-xs text-gray-500 mr-2">Or use URL:</span>
                   <input
                     type="text"
-                    value={avatar}
+                    value={avatar || 'no avatar yet'}
                     onChange={(e) => {
                       setAvatar(e.target.value);
                       setAvatarFile(null); // Clear file if using URL
@@ -544,8 +625,8 @@ export default function CustomizationComponent(props: Props) {
                             <Move size={16} className="mr-2 text-gray-500 cursor-move" />
                             <input
                               type="text"
-                              value={field.title}
-                              onChange={(e) => updateField(field.id, 'title', e.target.value, fields, setFields)}
+                              value={field.name || 'no title'}
+                              onChange={(e) => updateField(field.id, 'name', e.target.value, fields, setFields)}
                               className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                               placeholder="Link Title"
                             />
@@ -569,8 +650,8 @@ export default function CustomizationComponent(props: Props) {
                         <div className="mb-3">
                           <input
                             type="text"
-                            value={field.link}
-                            onChange={(e) => updateField(field.id, 'link', e.target.value, fields, setFields)}
+                            value={field.url || 'no link'}
+                            onChange={(e) => updateField(field.id, 'url', e.target.value, fields, setFields)}
                             className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
                             placeholder="https://example.com"
                           />
@@ -582,7 +663,7 @@ export default function CustomizationComponent(props: Props) {
                               <span className="text-xs mr-1">Type:</span>
                               {customizationUtils.linkTypes.find(lt => lt.id === field.type)?.icon || <LinkIcon size={14} />}
                               <select
-                                value={field.type}
+                                value={field.type || 'no type'}
                                 onChange={(e) => updateField(field.id, 'type', e.target.value, fields, setFields)}
                                 className="bg-transparent text-xs ml-1 outline-none appearance-none  pl-1"
                               >
@@ -598,7 +679,7 @@ export default function CustomizationComponent(props: Props) {
                               <span className="text-xs mr-1">Animation:</span>
                               <Sparkles size={14} className="mr-1" />
                               <select
-                                value={field.animation}
+                                value={field.animation || 'no anim'}
                                 onChange={(e) => updateField(field.id, 'animation', e.target.value, fields, setFields)}
                                 className="bg-transparent text-xs ml-1 outline-none appearance-none pl-1"
                               >
@@ -665,7 +746,7 @@ export default function CustomizationComponent(props: Props) {
                         className="flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg mr-2"
                         onClick={() => {
                           setPreviewMode(!previewMode);
-                          saveChanges(setSavedMessage , setModified);
+                          saveChanges();
                         }}
                       >
                         <Eye size={16} className="mr-2" />
@@ -675,7 +756,7 @@ export default function CustomizationComponent(props: Props) {
                         <button
                           className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
                           onClick={() => {
-                            saveChanges(setSavedMessage , setModified);
+                            saveChanges();
                           }}
                           disabled={!modified}
                         >
@@ -763,7 +844,7 @@ export default function CustomizationComponent(props: Props) {
                           <button
                             className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
                             onClick={() => {
-                              saveChanges(setSavedMessage , setModified);
+                              saveChanges();
                             }}
                             disabled={!modified}
                           >
