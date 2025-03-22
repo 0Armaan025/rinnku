@@ -109,9 +109,9 @@ async function fetchUserData(username: string): Promise<UserProfileData> {
   try {
     // Fetch the user data using the API
     const res = await getuserByName(cleanUsername);
-    
+    // ab log bhi karo
     if (!res) {
-      throw new Error("User not found");
+      // throw new Error("User not found");
     }
     
     
@@ -121,6 +121,7 @@ async function fetchUserData(username: string): Promise<UserProfileData> {
       avatar: res.user.avatar || "",
       theme: res.user.theme || "midnight",
       layout: res.user.layout || "standard",
+      viewCount: res.user.viewCount || 0,
       showBio: res.user.showBio !== undefined ? res.showBio : true,
       animation: res.user.animation || "scale",
       showAvatar: res.user.showAvatar !== undefined ? res.user.showAvatar : true,
@@ -142,11 +143,13 @@ async function fetchUserData(username: string): Promise<UserProfileData> {
       })) : []
     };
     
+
+    
     userDataCache[cleanUsername] = data;
     return data;
   } catch (error) {
     console.error("Error fetching user data:", error);
-    throw new Error("Failed to load user profile");
+    throw Error("Failed to fetch user data");
   }
 }
 
@@ -171,7 +174,7 @@ const UserProfilePage: React.FC = () => {
   // Mark when client-side rendering is active
   useEffect(() => {
     setIsClient(true);
-    setViewCount(Math.floor(Math.random() * 15) + 5);
+    
     
     // Add event listener for custom cursor
     const handleMouseMove = (e: MouseEvent) => {
