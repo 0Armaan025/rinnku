@@ -171,7 +171,7 @@ const UserProfilePage: React.FC = () => {
   const [cursorType, setCursorType] = useState<'default' | 'hover'>('default');
   const [linkClicked, setLinkClicked] = useState<number | null>(null);
 
-  // Mark when client-side rendering is active
+  
   useEffect(() => {
     setIsClient(true);
     
