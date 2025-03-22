@@ -584,7 +584,7 @@ export default function CustomizationComponent(props: Props) {
                 <label className="block text-sm mb-1">Username</label>
                 <div className="flex items-center">
                   <span className="px-3 py-2 bg-gray-700 border border-gray-700 rounded-l-lg text-gray-400">
-                    rinkuu.vercel.app/
+                    rinkuu.vercel.app/@
                   </span>
                   <input
                     type="text"

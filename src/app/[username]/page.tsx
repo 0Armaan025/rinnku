@@ -9,8 +9,10 @@ import {
   ArrowUpRight, 
   LinkIcon,
   User,
-  Sparkles
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
+import { getuserByName } from '../utils/api';
 
 // Type definitions
 interface UserProfileData {
@@ -28,7 +30,7 @@ interface UserProfileData {
   buttonFullWidth: boolean;
   showLinkIcons: boolean;
   isPremium: boolean;
-  fields: FieldType[];
+  links: FieldType[];
 }
 
 // Utility functions - moved outside component and memoized
@@ -65,6 +67,7 @@ const ANIMATION_CLASSES = {
   slide: 'transition-transform hover:translate-x-4',
   bounce: 'transition-transform hover:animate-bounce',
   rotate: 'transition-transform hover:rotate-1',
+  none: '', // Added 'none' animation type
   default: 'transition-all'
 };
 
@@ -74,7 +77,7 @@ const getAnimationClass = (animation: string | undefined) =>
 const getLinkIcon = (field: FieldType) => {
   if (field.image) {
     return (
-      <div className="w-12 h-8 mr-3 flex-shrink-0">
+      <div className="w-8 h-8 mr-3 flex-shrink-0">
         <div className="w-full h-full bg-gray-200 rounded relative">
           <Image 
             src={field.image} 
@@ -89,14 +92,14 @@ const getLinkIcon = (field: FieldType) => {
   }
   
   const linkType = customizationUtils.linkTypes.find(lt => lt.id === field.type);
-  return <span className="mr-3">{linkType ? linkType.icon : <LinkIcon size={16} />}</span>;
+  return <span className="mr-3">{linkType ? linkType.icon : <ExternalLink size={18} className="text-white" />}</span>;
 };
 
 // Enhanced fetch function with proper error handling
 const userDataCache: Record<string, UserProfileData> = {};
 
 async function fetchUserData(username: string): Promise<UserProfileData> {
-  // Remove @ from username if present
+  
   const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
   
   if (userDataCache[cleanUsername]) {
@@ -104,33 +107,39 @@ async function fetchUserData(username: string): Promise<UserProfileData> {
   }
   
   try {
-    // In a real app, this would be an API call
-    // For demo/testing, we'll use mock data with a small delay
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Fetch the user data using the API
+    const res = await getuserByName(cleanUsername);
     
-    // Check if the username is exactly '0Armaan025'
-    const isPremium = cleanUsername === '0Armaan025';
+    if (!res) {
+      throw new Error("User not found");
+    }
+    
     
     const data = {
-      displayName: cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1),
-      bio: "Digital creator and content enthusiast",
-      avatar: "",
-      theme: "rose",
-      layout: "compact",
-      showBio: false,
-      animation: "bounce",
-      showAvatar: true,
-      roundedCorners: true,
-      showBorders: true,
-      showShadows: false,
-      isPremium,
-      buttonFullWidth: false,
-      showLinkIcons: false,
-      fields: [
-        { id: 1, title: 'Portfolio', link: 'https://portfolio.com', image: 'https://cdn.dribbble.com/userupload/18679649/file/original-4862151ee849235dc5910c606ab05a72.jpg?resize=1200x926&vertical=center', type: 'default', animation: 'slide' },
-        { id: 2, title: 'LinkedIn', link: 'https://linkedin.com', image: '', type: 'social', animation: 'pulse' },
-        { id: 3, title: 'Twitter', link: 'https://twitter.com', image: '', type: 'social', animation: 'scale' },
-      ]
+      displayName: res.user.name || cleanUsername,
+      bio: res.user.bio || "Welcome to my profile!",
+      avatar: res.user.avatar || "",
+      theme: res.user.theme || "midnight",
+      layout: res.user.layout || "standard",
+      showBio: res.user.showBio !== undefined ? res.showBio : true,
+      animation: res.user.animation || "scale",
+      showAvatar: res.user.showAvatar !== undefined ? res.user.showAvatar : true,
+      roundedCorners: res.user.roundedCorners !== undefined ? res.user.roundedCorners : true,
+      showBorders: res.user.showBorders !== undefined ? res.user.showBorders : true,
+      showShadows: res.user.showShadows !== undefined ? res.user.showShadows : true,
+      isPremium: res.user.isPremium || false,
+      buttonFullWidth: res.user.fullWidth !== undefined ? res.user.fullWidth : true,
+      showLinkIcons: res.user.showIcons !== undefined ? res.user.showIcons : true,
+      // Important: Map the links array to fields
+      links: Array.isArray(res.user.links) ? res.user.links.map((link: { _id?: string; name?: string; url?: string; type?: string; image?: string; animation?: string; hidden?: boolean }) => ({
+        id: link._id || String(Math.random()),
+        name: link.name || "Link",
+        url: link.url || "#",
+        type: link.type || "default",
+        image: link.image || "",
+        animation: link.animation || res.animation || "scale",
+        hidden: link.hidden || false
+      })) : []
     };
     
     userDataCache[cleanUsername] = data;
@@ -157,6 +166,7 @@ const UserProfilePage: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [cursorType, setCursorType] = useState<'default' | 'hover'>('default');
+  const [linkClicked, setLinkClicked] = useState<number | null>(null);
 
   // Mark when client-side rendering is active
   useEffect(() => {
@@ -213,6 +223,16 @@ const UserProfilePage: React.FC = () => {
     loadUserData();
   }, [username, isClient]);
 
+  // Add a welcome effect on load
+  useEffect(() => {
+    if (userData && !impressedAnimation) {
+      setTimeout(() => {
+        setImpressedAnimation(true);
+        setTimeout(() => setImpressedAnimation(false), 3000);
+      }, 500);
+    }
+  }, [userData, impressedAnimation]);
+
   // Memoized theme and layout calculations
   const { selectedTheme, selectedLayout, containerClasses } = useMemo(() => {
     if (!userData) {
@@ -247,6 +267,17 @@ const UserProfilePage: React.FC = () => {
     setCursorType('default');
   }, []);
 
+  // Handle link click with animation
+  const handleLinkClick = useCallback((index: number, url: string) => {
+    setLinkClicked(index);
+    
+    // Navigate after a slight delay for animation
+    setTimeout(() => {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setLinkClicked(null);
+    }, 300);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] flex items-center justify-center">
@@ -272,7 +303,7 @@ const UserProfilePage: React.FC = () => {
   return (
     <div 
       className="min-h-screen bg-gradient-to-b from-[#030213] to-[#0f0a2d] py-10 px-4 relative overflow-hidden cursor-none"
-      onMouseMove={userData.isPremium ? handleMouseMove : undefined}
+      onMouseMove={handleMouseMove}
     >
       {/* Custom cursor */}
       {isClient && (
@@ -299,17 +330,15 @@ const UserProfilePage: React.FC = () => {
         </>
       )}
 
-      {/* PREMIUM BG - Only show for premium users */}
-      {userData.isPremium && (
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/3 w-80 h-80 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse" style={{animationDelay: '1s'}}></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-600 rounded-full filter blur-3xl opacity-10 animate-pulse" style={{animationDelay: '2s'}}></div>
-        </div>
-      )}
+      {/* Dynamic Background */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/3 w-80 h-80 bg-purple-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-indigo-600 rounded-full filter blur-3xl opacity-10 animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-600 rounded-full filter blur-3xl opacity-10 animate-pulse" style={{animationDelay: '2s'}}></div>
+      </div>
   
       {/* Spotlight effect following cursor - only active on client */}
-      {isClient && userData.isPremium && (
+      {isClient && (
         <div 
           className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 opacity-5 pointer-events-none blur-3xl"
           style={{
@@ -322,8 +351,8 @@ const UserProfilePage: React.FC = () => {
 
       <div className="container mx-auto max-w-4xl relative z-10">
         {/* Neuromorphic card effect with translucent glassy background */}
-        <div className={userData.isPremium ? `rounded-xl p-8 backdrop-blur-xl bg-white/5 border border-white/10 shadow-xl relative overflow-hidden ${impressedAnimation ? 'animate-wiggle' : ''}` : ''}>
-          {/* Premium indicator - Only show for premium users */}
+        <div className={`rounded-xl p-8 backdrop-blur-xl bg-white/5 border border-white/10 shadow-xl relative overflow-hidden ${impressedAnimation ? 'animate-pulse' : ''}`}>
+          {/* Premium indicator */}
           {userData.isPremium && impressedAnimation && (
             <div className="absolute -top-2 -right-2 w-24 h-24">
               <div className="absolute top-8 right-8 bg-amber-500 text-white px-4 py-1 text-xs font-bold transform rotate-45 shadow-lg">
@@ -356,13 +385,8 @@ const UserProfilePage: React.FC = () => {
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
-                {/* Avatar glow effect - Only for premium users */}
-                {userData.isPremium && (
-                  <>
-                    <div className="absolute inset-0 bg-purple-500 opacity-20 group-hover:animate-pulse rounded-full"></div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-30 rounded-full transition-opacity"></div>
-                  </>
-                )}
+                {/* Avatar glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-30 rounded-full transition-opacity"></div>
                 
                 {userData.avatar ? (
                   <div className="relative w-full h-full">
@@ -380,7 +404,7 @@ const UserProfilePage: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Only show premium badge if user is premium */}
+                {/* Premium badge */}
                 {userData.isPremium && (
                   <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center animate-spin-slow">
                     <div className="w-6 h-6 bg-[#030213] rounded-full flex items-center justify-center">
@@ -399,7 +423,7 @@ const UserProfilePage: React.FC = () => {
                 {userData.displayName}
               </span>
               
-              {/* Only show premium badge if user is premium */}
+              {/* Premium badge */}
               {userData.isPremium && (
                 <span className="absolute -top-3 -right-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded-full transform rotate-12 animate-bounce">
                   Pro
@@ -407,16 +431,21 @@ const UserProfilePage: React.FC = () => {
               )}
             </h1>
             
-            {/* Views count */}
-            {userData.showBio && (
-              <div className="mt-4 flex items-center bg-white/10 px-3 py-1 rounded-full"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                <span className="text-xs text-white">{viewCount} views yet</span>
+            {/* Bio section */}
+            {userData.showBio && userData.bio && (
+              <div className="text-white text-center text-sm mb-4 max-w-md bg-black/20 p-3 rounded-lg backdrop-blur-sm">
+                {userData.bio}
               </div>
             )}
+            
+            {/* Views count */}
+            <div className="mt-2 flex items-center bg-white/10 px-3 py-1 rounded-full"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              <span className="text-xs text-white">{viewCount} views today</span>
+            </div>
           </div>
 
           {/* Style toggle button */}
@@ -431,60 +460,64 @@ const UserProfilePage: React.FC = () => {
           </button>
 
           {/* Links Section */}
-          <div className={containerClasses}>
-            {userData.fields
-              .filter(field => !field.hidden)
-              .map((field, index) => (
-                <a
-                  key={field.id}
-                  href={field.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Visit ${field.title}`}
-                  className={`
-                    hover:cursor-none
-                    ${getButtonClasses(selectedTheme, userData.roundedCorners, userData.showBorders, userData.showShadows, selectedLayout, showGlassEffect)}
-                    ${getAnimationClass(field.animation || userData.animation)}
-                    ${!userData.buttonFullWidth && selectedLayout.id !== 'grid' ? 'self-center max-w-xs w-[300px]' : 'w-full'}
-                    relative overflow-hidden group
-                  `}
-                  onMouseEnter={() => {
-                    setHighlight(index);
-                    handleMouseEnter();
-                  }}
-                  onMouseLeave={() => {
-                    setHighlight(null);
-                    handleMouseLeave();
-                  }}
-                  style={{
-                    animationDelay: `${index * 100}ms`,
-                    transform: `translateY(${highlight === index ? '-2px' : '0'})`,
-                    transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  }}
-                >
-                  {/* Spotlight effect */}
-                  {isClient && highlight === index && (
-                    <div className="absolute inset-0 bg-white opacity-10 rounded-full w-20 h-20 -top-5 -left-5 blur-xl animate-pulse"></div>
-                  )}
-                  
-                  {/* Neuomorphic inner shadow */}
-                  {showGlassEffect && (
-                    <div className="absolute inset-0 rounded-lg shadow-inner opacity-30 pointer-events-none"></div>
-                  )}
-                  
-                  <div className="flex items-center z-10 relative">
-                    {userData.showLinkIcons && getLinkIcon(field)}
-                    <span className={`${selectedTheme.textColor} group-hover:translate-x-1 transition-transform`}>
-                      {field.title}
-                    </span>
+          {userData.links && userData.links.length > 0 ? (
+            <div className={containerClasses}>
+              {userData.links
+                .filter(field => !field.hidden)
+                .map((field, index) => (
+                  <div
+                    key={field.id || index}
+                    onClick={() => handleLinkClick(index, field.url)}
+                    className={`
+                      hover:cursor-none
+                      ${getButtonClasses(selectedTheme, userData.roundedCorners, userData.showBorders, userData.showShadows, selectedLayout, showGlassEffect)}
+                      ${getAnimationClass(field.animation)}
+                      ${!userData.buttonFullWidth && selectedLayout.id !== 'grid' ? 'self-center max-w-xs w-full' : 'w-full'}
+                      relative overflow-hidden group
+                      ${linkClicked === index ? 'animate-pulse' : ''}
+                    `}
+                    onMouseEnter={() => {
+                      setHighlight(index);
+                      handleMouseEnter();
+                    }}
+                    onMouseLeave={() => {
+                      setHighlight(null);
+                      handleMouseLeave();
+                    }}
+                    style={{
+                      animationDelay: `${index * 100}ms`,
+                      transform: `translateY(${highlight === index ? '-2px' : '0'})`,
+                      transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}
+                  >
+                    {/* Spotlight effect */}
+                    {isClient && highlight === index && (
+                      <div className="absolute inset-0 bg-white opacity-10 rounded-full w-20 h-20 -top-5 -left-5 blur-xl animate-pulse"></div>
+                    )}
+                    
+                    {/* Neuomorphic inner shadow */}
+                    {showGlassEffect && (
+                      <div className="absolute inset-0 rounded-lg shadow-inner opacity-30 pointer-events-none"></div>
+                    )}
+                    
+                    <div className="flex items-center z-10 relative">
+                      {userData.showLinkIcons && getLinkIcon(field)}
+                      <span className={`text-white group-hover:translate-x-1 transition-transform`}>
+                        {field.name}
+                      </span>
+                    </div>
+                    <ArrowUpRight 
+                      size={16} 
+                      className="text-white group-hover:scale-125 transition-transform" 
+                    />
                   </div>
-                  <ArrowUpRight 
-                    size={16} 
-                    className={`${selectedTheme.textColor} group-hover:scale-125 transition-transform`} 
-                  />
-                </a>
-              ))}
-          </div>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-white/70">
+              No links have been added to this profile yet.
+            </div>
+          )}
           
           {/* Call-to-action Footer */}
           <div className="mt-8 text-center">
@@ -492,7 +525,6 @@ const UserProfilePage: React.FC = () => {
             <button 
               className={`
                 px-6 py-3 relative overflow-hidden hover:cursor-none
-                
                 ${showGlassEffect ? 'backdrop-blur-md bg-white/10' : 'bg-gradient-to-r from-purple-600 to-pink-600'}
                 rounded-full text-white text-sm font-medium
                 transform transition-all hover:scale-105 hover:shadow-lg
@@ -517,16 +549,16 @@ const UserProfilePage: React.FC = () => {
             >
               <div className="flex items-center justify-center mb-2">
                 <Sparkles size={16} className="text-amber-400 mr-2" />
-                <span className="text-amber-400 text-xs font-medium">PREMIUM FEATURES</span>
+                <span className="text-amber-400 text-xs font-medium">PREMIUM FEATURES (VERSION 2)</span>
               </div>
               <p className="text-xs text-gray-300 mb-3">Unlock animated backgrounds, custom domains, and advanced analytics</p>
               <button 
-                className="text-xs text-white hover:cursor-none  bg-gradient-to-r from-amber-600 to-amber-500 px-3 py-1 rounded-full"
+                className="text-xs text-white hover:cursor-none bg-gradient-to-r from-amber-600 to-amber-500 px-3 py-1 rounded-full"
                 aria-label="Upgrade to premium"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
-                Upgrade Now
+                Upgrade Now 
               </button>
             </div>
           </div>

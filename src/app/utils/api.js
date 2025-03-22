@@ -95,12 +95,13 @@ export const updateUser = async (token, userDataNew) => {
     }
 };
 
-export const getuserByName = async (token, name) => {
+export const getuserByName = async (name) => {
     try {
         const res = await fetch(`${API_BASE_URL}/api/user/${name}`, {
             method: "GET",
             headers: {
-                "Authorization": `Bearer ${token}`,
+
+                "Content-Type": "application/json",
             },
             // auth is not needed tho here
         });
