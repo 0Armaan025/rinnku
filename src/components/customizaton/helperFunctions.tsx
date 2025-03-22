@@ -256,7 +256,7 @@ export const renderPreview = (
           <a
             key={field.id}
             href={field.url}
-            target="_blank"
+            target="new"
             rel="noopener noreferrer"
             className={`${getButtonClasses(selectedTheme, showBorders, showBorders, true, selectedLayout)} ${getAnimationClass(field.animation || 'none')} ${!buttonFullWidth && selectedLayout.id !== 'grid' ? 'self-center max-w-xs' : 'w-full'}`}
           >

@@ -4,11 +4,12 @@ import React, { useState, useRef, ChangeEvent, DragEvent } from "react";
 interface ProfileComponentProps {
   displayName: string;
   email: string;
+  avatar: string;
   rinnkuUrl: string;
 }
 
-const ProfileComponent: React.FC<ProfileComponentProps> = ({ displayName, email, rinnkuUrl }) => {
-  const [avatar, setAvatar] = useState<string | null>(null);
+const ProfileComponent: React.FC<ProfileComponentProps> = ({ displayName, email, avatar, rinnkuUrl }) => {
+  const [avatarFile, setAvatarFile] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -27,7 +28,7 @@ const ProfileComponent: React.FC<ProfileComponentProps> = ({ displayName, email,
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setAvatar(event.target?.result as string);
+        setAvatarFile(event.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -51,7 +52,7 @@ const ProfileComponent: React.FC<ProfileComponentProps> = ({ displayName, email,
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setAvatar(event.target?.result as string);
+        setAvatarFile(event.target?.result as string);
       };
       reader.readAsDataURL(file);
     }

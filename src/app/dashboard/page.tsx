@@ -50,6 +50,7 @@ const DashboardPage = (props: Props) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [username, setUsername] = useState('johndoe');
+  const [avatar, setAvatar] = useState('');
   const [displayName, setDisplayName] = useState('John Doe');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [email, setEmail] = useState('johndoe@gmail.com');
@@ -137,6 +138,11 @@ const [fields, setFields] = useState<FieldType[]>([
     const response = await getCurrentUser(localStorage.getItem("token"));
     console.log(response);
     try {
+
+      if(response.avatar!="") {
+        setAvatar(response.avatar);
+      }
+
       setUsername(response.name);
       if(response.name) {
         setDisplayName(response.name);
@@ -455,9 +461,12 @@ if(clicks) {
               
   
           >
-            
-              <span className="text-white text-2xl font-bold">{getInitials()}</span>
-            
+            {avatar ? (
+              <img src={avatar} 
+              className="w-full h-full object-cover"/>
+            ) : (
+            <span className="text-white text-2xl font-bold">{getInitials()}</span>
+            )} 
             
           </div>
           <div className="ml-3">
@@ -536,12 +545,12 @@ if(clicks) {
               {activeTab === 'promocode' && 'Promo code'}
             </h1>
             <div className="flex items-center space-x-4">
-              <button
+              {/* <button
                 onClick={() => setSettingsOpen(!settingsOpen)}
                 className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800"
               >
                 <Settings size={18} />
-              </button>
+              </button> */}
 
               {settingsOpen && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-gray-800 rounded-lg shadow-lg z-20">
@@ -582,9 +591,9 @@ if(clicks) {
                 ></div>
               )}
               
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+              {/* <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
                 JD
-              </div>
+              </div> */}
             </div>
           </div>
         </header>
@@ -593,7 +602,7 @@ if(clicks) {
         <main className="p-4 md:p-6">
           {/* Profile Section */}
           {activeTab === 'profile' && (
-           <ProfileComponent displayName={displayName} email="armaan33000@gmail.com" rinnkuUrl={username} />
+           <ProfileComponent displayName={displayName} avatar={avatar} email="armaan33000@gmail.com" rinnkuUrl={username} />
           )}
 
 {activeTab === 'promocode' && (

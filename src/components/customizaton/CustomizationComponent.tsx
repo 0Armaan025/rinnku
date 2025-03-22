@@ -15,6 +15,8 @@ import FieldType from './types';
 
 import customizationUtils from './utils';
 import { getCurrentUser, updateUser } from '@/app/utils/api';
+import { workAsyncStorage } from 'next/dist/server/app-render/entry-base';
+import { Josefin_Slab } from 'next/font/google';
 
 type Props = {}
 
@@ -49,7 +51,7 @@ export default function CustomizationComponent(props: Props) {
         bio: bio || "Hey there, I'm using Rinkuu",
         rinnkuUrl: username,
         name: displayName,
-        avatar: '',
+        avatar: avatar || "",
         theme: selectedTheme.id || "Midnight",
         layout: selectedLayout.id || "Compact",
         animation: selectedAnimation.id || "Scale",
@@ -226,20 +228,24 @@ export default function CustomizationComponent(props: Props) {
         setRoundedCorners(response.roundedCorners);
         setShowBorders(response.showBorders);
         setShowShadows(response.showShadows);
-        setButtonFullWidth(response.buttonFullWidth);
-        setShowLinkIcons(response.showLinkIcons);
+        setButtonFullWidth(response.fullWidth);
+        setShowLinkIcons(response.showIcons);
         
-        alert(response.links[0].name);
+        
+
+        
 
         if (response.links && response.links.length > 0) {
           const formattedFields = response.links.map((link:FieldType, index:number) => {
             // Ensure each link is a valid object
             if (!link) return null;
             
+            
+
             return {
               id: index + 1,
-              title: link.name || '', // Use empty string if title is null
-              link: link.url || '',  // Use empty string if link is null
+              name: link.name || '', 
+              url: link.url || '',  
               image: link.image || '',
               type: link.type || 'default',
               animation: link.animation || 'none',
@@ -247,6 +253,8 @@ export default function CustomizationComponent(props: Props) {
             };
           }).filter((item: FieldType | null): item is FieldType => item !== null); // Remove any null entries
           
+          
+
           setFields(formattedFields);
         }
         
@@ -576,7 +584,7 @@ export default function CustomizationComponent(props: Props) {
                 <label className="block text-sm mb-1">Username</label>
                 <div className="flex items-center">
                   <span className="px-3 py-2 bg-gray-700 border border-gray-700 rounded-l-lg text-gray-400">
-                    example.com/
+                    rinkuu.vercel.app/
                   </span>
                   <input
                     type="text"
